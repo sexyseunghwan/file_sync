@@ -1,21 +1,44 @@
 mod common;
-
 use crate::common::*;
 
-async fn index() -> impl Responder {
-    let html = std::fs::read_to_string("template/main.html").unwrap();
-    HttpResponse::Ok().content_type("text/html").body(html)
-}
+mod utils_modules;
+use utils_modules::logger_utils::*;
+
+mod handler;
+
+mod model;
 
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
-        App::new()
-            .route("/", web::get().to(index))  // HTML 파일 제공
-            .service(Files::new("/static", "static").show_files_listing()) // 정적 파일 제공 (CSS, JS)
-    })
-    .bind("127.0.0.1:8999")?
-    .run()
-    .await
+
+
+#[tokio::main]
+async fn main() {
+
+    /* 로깅 시작 */
+    set_global_logger();
+    info!("File Sync Program Start");
+    
+    
+    /* 메인핸들러 호출 */
+    
+    
+    let (tx, rx) = channel();
+
+    let config = Config::default()
+        .with_poll_interval(Duration::from_secs(2));
+
+    // Watcher 인스턴스 생성
+    let mut watcher: RecommendedWatcher = Watcher::new(tx, config).unwrap();
+
+    // 관찰할 디렉토리 설정
+    watcher.watch(Path::new("./file_test/test.txt"), RecursiveMode::Recursive).unwrap();
+
+    println!("Watching for changes...");
+
+    // 이벤트 수신 대기
+    for event in rx {
+        println!("Change detected: {:?}", event);
+    }
+    
+    
 }

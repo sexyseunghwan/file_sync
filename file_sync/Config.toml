@@ -1,0 +1,5 @@
+[server]
+role = "master"
+address = "192.168.1.1"
+watch_path = "/path/to/watch"
+specific_files = ["file1.txt", "file2.txt", "file3.txt"]
