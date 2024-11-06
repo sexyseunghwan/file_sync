@@ -1,15 +1,12 @@
-
-
-
-
 pub use std::{ 
     sync::{ Arc, Mutex, mpsc::channel },
     collections::HashMap,
-    io::Write,
     env, fs, cmp, thread,
     process::Command,
     time::Duration,
-    path::Path
+    path::{ Path, PathBuf },
+    fs::File,
+    io::{ BufReader, Write, BufRead, Read }
 };
 
 
@@ -17,11 +14,17 @@ pub use reqwest::Client;
 
 pub use tokio::fs::{read_to_string, write};
 
-pub use serde::{Deserialize, Serialize};
+pub use serde::{
+    Deserialize, 
+    Serialize,
+    de::DeserializeOwned
+};
+
+pub use serde_json::{Value, from_reader};
 
 pub use actix_files::Files;
 
-
+pub use async_trait::async_trait;
 
 pub use log::{info, error};
 
@@ -45,6 +48,6 @@ pub use actix_web::{
 };
 
 
-pub use notify::{
-    RecommendedWatcher, RecursiveMode, Watcher, Config, EventKind
-};
+pub use hotwatch::{Hotwatch, Event, EventKind as WatchEventKind};
+
+pub use sha2::{Sha256, Digest};
