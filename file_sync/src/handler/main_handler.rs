@@ -16,12 +16,28 @@ impl<W: WatchService> MainHandler<W> {
     }
 
     #[doc = "docs"]
-    pub fn task_main() {
+    pub async fn task_main(&self) {
 
+        let role = self.watch_service.get_role();
         
-
-
+        if role == "master" {
+            self.master_task().await;
+        } else {
+            self.slave_task().await;
+        }
+        
     }
     
+    
+    #[doc = "docs"]
+    pub async fn master_task(&self) {
+
+    } 
+    
+
+    #[doc = "docs"]
+    pub async fn slave_task(&self) {
+        
+    }
 
 }

@@ -6,11 +6,18 @@ pub use std::{
     time::Duration,
     path::{ Path, PathBuf },
     fs::File,
-    io::{ BufReader, Write, BufRead, Read }
+    io::{ BufReader, Write, BufRead, Read, Cursor }
 };
 
 
-pub use reqwest::Client;
+pub use reqwest::{ Client, Body };
+
+pub use tokio::{
+    fs::File as TokioFile,
+    io::BufReader as TokioBufReader,
+    io::AsyncReadExt
+}; 
+
 
 pub use tokio::fs::{read_to_string, write};
 

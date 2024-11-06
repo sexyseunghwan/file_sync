@@ -64,6 +64,40 @@ fn calculate_file_hash(file_path: &str) -> std::io::Result<Vec<u8>> {
 }
 
 
+async fn test() -> Result<(), anyhow::Error> {
+
+    let file_path = "./file_test/master.txt";
+    
+    let mut file = TokioFile::open(file_path).await.expect("Failed to open file");
+    let mut buffer = Vec::new();
+
+    // 파일의 모든 내용을 읽어서 버퍼에 저장
+    file.read_to_end(&mut buffer).await.expect("Failed to read file");
+
+    // Bytes 스트림을 생성
+    let stream = Cursor::new(buffer);
+    let body = Body::wrap(stream);
+
+    let client = Client::new();
+    let part = reqwest::multipart::Part::stream(body)
+        .file_name(file_path.to_string().into_owned());
+
+    let form = multipart::Form::new().part("file", part);
+
+    let response = client.post(url)
+        .multipart(form)
+        .send()
+        .await?;
+    
+    if response.status().is_success() {
+        println!("File was sent successfully.");
+    } else {
+        eprintln!("Failed to send file: {:?}", response.status());
+    }
+
+    Ok(())
+}
+
 
 #[tokio::main]
 async fn main() {
@@ -192,45 +226,45 @@ async fn main() {
     //         (None, None) => break,
     //     }
     // }
-
-    //notify = "7.0.0"
+    
     // for elem in changes {
     //     println!("{:?}", elem);
     // }
     
     /* ============== HOT Watch ============== */
-    let mut hotwatch = Hotwatch::new().expect("hotwatch failed to initialize!");
+    // let mut hotwatch = Hotwatch::new().expect("hotwatch failed to initialize!");
     
-    let file = "./file_test/master.txt";
-    let mut last_hash = hash_file(Path::new(file)).unwrap();
+    // let file = "./file_test/master.txt";
+    // let mut last_hash = hash_file(Path::new(file)).unwrap();
     
-    let (tx, rx) = channel();
+    // let (tx, rx) = channel();
 
-    hotwatch.watch(file, move |event: Event| {
+    // hotwatch.watch(file, move |event: Event| {
         
-        if let WatchEventKind::Modify(_) = event.kind {
-            tx.send(()).expect("Failed to send event");
-            println!("{:?} changed!", event.paths[0]);
-        }
+    //     if let WatchEventKind::Modify(_) = event.kind {
+    //         tx.send(()).expect("Failed to send event");
+    //         println!("{:?} changed!", event.paths[0]);
+    //     }
 
-    }).expect("failed to watch file!");
+    // }).expect("failed to watch file!");
     
     
-    loop {
-        
-        rx.recv().unwrap();
-        
-        let cur_hash = hash_file(Path::new(file)).unwrap();
 
-        /* 파일 해시값이 다른경우 수정으로 봄 */
-        if cur_hash != last_hash {
-            println!("Detected a change!");
-            last_hash = cur_hash;
-        }
+    // loop {
         
-        // 필요에 따라 추가 로직 실행
+    //     rx.recv().unwrap();
         
-    }
+    //     let cur_hash = hash_file(Path::new(file)).unwrap();
+
+    //     /* 파일 해시값이 다른경우 수정으로 봄 */
+    //     if cur_hash != last_hash {
+    //         println!("Detected a change!");
+    //         last_hash = cur_hash;
+    //     }
+        
+    //     // 필요에 따라 추가 로직 실행
+        
+    // }
 
 
     /* watch 관련 서비스 */
