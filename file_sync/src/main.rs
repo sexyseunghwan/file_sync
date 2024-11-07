@@ -1,10 +1,12 @@
 mod common;
+use core::panic;
+
 use crate::common::*;
 
 mod utils_modules;
 use handler::main_handler;
 use handler::main_handler::MainHandler;
-use service::watch_service::WatchServicePub;
+use service::config_service::ConfigServicePub;
 use utils_modules::logger_utils::*;
 use utils_modules::io_utils::*;
 
@@ -66,38 +68,116 @@ fn calculate_file_hash(file_path: &str) -> std::io::Result<Vec<u8>> {
 
 async fn test() -> Result<(), anyhow::Error> {
 
+    let url = "http://192.168.8.77:9000/upload";
     let file_path = "./file_test/master.txt";
     
-    let mut file = TokioFile::open(file_path).await.expect("Failed to open file");
-    let mut buffer = Vec::new();
-
-    // 파일의 모든 내용을 읽어서 버퍼에 저장
-    file.read_to_end(&mut buffer).await.expect("Failed to read file");
-
-    // Bytes 스트림을 생성
-    let stream = Cursor::new(buffer);
-    let body = Body::wrap(stream);
+    let file = TokioFile::open(file_path).await?;
+    let reader = FramedRead::new(file, BytesCodec::new());
+    let stream = 
+        reader
+            .map_ok(|bytes| bytes.freeze())
+            .map_err(|e| std::io::Error::new( std::io::ErrorKind::Other, e));
+    
+    let body = Body::wrap_stream(stream);
 
     let client = Client::new();
-    let part = reqwest::multipart::Part::stream(body)
-        .file_name(file_path.to_string().into_owned());
-
-    let form = multipart::Form::new().part("file", part);
 
     let response = client.post(url)
-        .multipart(form)
+        .body(body)
         .send()
         .await?;
-    
+
     if response.status().is_success() {
         println!("File was sent successfully.");
     } else {
-        eprintln!("Failed to send file: {:?}", response.status());
+        println!("Failed to send file: {}", response.status());
     }
 
+
+    //let body = Body::wrap_stream(stream); 
+
+    //let mut buffer = Vec::new();
+    /* 파일의 모든 내용을 읽어서 버퍼에 저장 */ 
+    //file.read_to_end(&mut buffer).await.expect("Failed to read file");
+
+    /* Bytes 스트림을 생성 */ 
+    // let stream = FramedRead::new(file, BytesCodec::new())
+    //     .map_ok(|bytes| bytes.freeze())
+    //     .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e));
+
+
+    //let stream = Cursor::new(buffer);
+    
+
+    //let client = Client::new();
+    //let body = Body::(stream);
+
+    // let mut file = TokioFile::open(file_path).await.expect("Failed to open file");
+    // let mut buffer = Vec::new();
+    
+    // /* 파일의 모든 내용을 읽어서 버퍼에 저장 */ 
+    // file.read_to_end(&mut buffer).await.expect("Failed to read file");
+
+
+
+    // //let stream = Cursor::new(buffer);
+    
+    
+    // let body = Body::wrap(stream);
+    
+    // let client = Client::new(); /* Clinet 를 전역적으로 한번만 셋팅하면 될거 같은데. */
+    // let part = multipart::Part::stream(body)
+    //     .file_name(file_path.to_string().to_owned());
+
+    // let form = multipart::Form::new().part("file", part);
+
+    // let response = client.post(url)
+    //     .multipart(form)
+    //     .send()
+    //     .await?;
+    
+    // if response.status().is_success() {
+    //     println!("File was sent successfully.");
+    // } else {
+    //     eprintln!("Failed to send file: {:?}", response.status());
+    // }
+    
     Ok(())
 }
 
+async fn actix_main() -> Result<(), anyhow::Error> {
+
+    HttpServer::new(|| {
+        App::new()
+            .service(upload)
+    })
+    .bind("127.0.0.1:8080")?
+    .run()
+    .await?;
+
+
+
+    Ok(())
+
+}
+
+#[post("/upload")]
+async fn upload(mut payload: web::Payload) -> impl Responder {
+    
+    let mut file = File::create("uploaded_file.txt").expect("Failed to create file");
+
+    /* 스트림에서 데이터를 읽고 파일에 쓴다. */ 
+    while let Ok(Some(chunk)) = payload.try_next().await {
+        let data = chunk;
+        let _ = file.write_all(&data);
+    }
+
+    HttpResponse::Ok().body("File uploaded successfully")
+}
+
+
+
+use model::HashStorage::*;
 
 #[tokio::main]
 async fn main() {
@@ -106,18 +186,36 @@ async fn main() {
     set_global_logger();
     info!("File Sync Program Start");
     
-    // let config_contents = fs::read_to_string("./Config.toml").unwrap();
-    // let configs: Configs = toml::from_str(&config_contents).unwrap();
+    let mut storage = HashStorage {
+        hashes: HashMap::new(),
+    };
+
+    // 파일 해시 업데이트
+    storage.update_hash("file1.txt".to_string(), "abcd1234".to_string().into());
+    storage.update_hash("file2.txt".to_string(), "efgh5678".to_string().into());
+
+    // 해시값 저장
+    storage.save(Path::new("./hash_storage/hash_value.json")).unwrap();
+
+    // 해시값 로드
+    //let loaded_storage = HashStorage::load(Path::new("./hash_storage/hash_value.json")).unwrap();
+    //println!("Loaded hashes: {:?}", loaded_storage.hashes);
     
+
+    /* 종속 서비스 호출 */
+    //let config_service = ConfigServicePub::new();
+    
+    /* 메인핸들러 호출 */
+    //let main_handler = MainHandler::new(config_service);
+    
+    /* 메인 함수 */
+    //main_handler.task_main().await;
+
     //let config = read_toml_from_file::<Configs>("./Config.toml").unwrap();
     //println!("{:?}", config);
 
+    //test().await.unwrap();
 
-    /* 종속 서비스 호출 */
-    //let watch_service = WatchServicePub::new();
-    
-    /* 메인핸들러 호출 */
-    //let main_handler = MainHandler::new(watch_service);
     
     
     /* 파일 비교 서비스 */
@@ -234,33 +332,43 @@ async fn main() {
     /* ============== HOT Watch ============== */
     // let mut hotwatch = Hotwatch::new().expect("hotwatch failed to initialize!");
     
-    // let file = "./file_test/master.txt";
-    // let mut last_hash = hash_file(Path::new(file)).unwrap();
+    // //let file = "./file_test/master.txt";
+    // let files = vec!["./file_test/master2.txt", "./file_test/slave.txt"];
+    // //let mut last_hash = hash_file(Path::new(file)).unwrap();
     
     // let (tx, rx) = channel();
 
-    // hotwatch.watch(file, move |event: Event| {
+    // let value: Result<(), SendError<()>> = tx.send(());
+    
+    // for file in files.iter() {
+         
+    //     let file_path = file.to_string();
         
-    //     if let WatchEventKind::Modify(_) = event.kind {
-    //         tx.send(()).expect("Failed to send event");
-    //         println!("{:?} changed!", event.paths[0]);
-    //     }
+    //     println!("{}", file);
 
-    // }).expect("failed to watch file!");
+    //     hotwatch.watch(file_path, move |event: Event| {
+            
+    //         if let WatchEventKind::Modify(_) = event.kind {
+    //             value.expect("Failed to send event");
+    //             println!("{:?} changed!", event.paths[0]);
+    //         }
+            
+    //     }).expect("failed to watch file!");
+    // }
     
-    
-
+        
     // loop {
         
     //     rx.recv().unwrap();
         
-    //     let cur_hash = hash_file(Path::new(file)).unwrap();
+    //     //println!("test");
+    //     //let cur_hash = hash_file(Path::new(file)).unwrap();
 
     //     /* 파일 해시값이 다른경우 수정으로 봄 */
-    //     if cur_hash != last_hash {
-    //         println!("Detected a change!");
-    //         last_hash = cur_hash;
-    //     }
+    //     // if cur_hash != last_hash {
+    //     //     println!("Detected a change!");
+    //     //     last_hash = cur_hash;
+    //     // }
         
     //     // 필요에 따라 추가 로직 실행
         

@@ -13,13 +13,14 @@ log = "0.4.20"
 anyhow = "1.0.79"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-reqwest = { version = "0.12.9", features = ["json","multipart"] }
+reqwest = { version = "0.12.9", features = ["json", "multipart", "stream"] }
 getset = "0.1.2"
 derive-new = "0.6.0"
-actix-files = "0.6.6"
 glob = "0.3.1"
 toml = "0.8.19"
 actix-web = "4.9.0"
 async-trait = "0.1.83"
 sha2 = "0.10.8"
 hotwatch = "0.5.0"
+tokio-util = "0.7.12"
+futures = "0.3.31"

@@ -1,5 +1,5 @@
 [server]
 role = "master"
 slave_address = [ "192.168.1.1", "192.168.1.2", "192.168.1.3" ]
-watch_path = "/path/to/watch"
-specific_files = ["file1.txt", "file2.txt", "file3.txt"]
+watch_path = "C:\\Users\\user\\Desktop\\private\\work_code\\FILE_SYNC\\file_sync\\file_sync\\file_test\\"
+specific_files = ["master.txt", "slave.txt"]
