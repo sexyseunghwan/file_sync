@@ -1,17 +1,37 @@
 use crate::common::*;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct HashStorage {
-    pub hashes: HashMap<String, Vec<u8>>,
+    pub hashes: HashMap<String, Vec<u8>>
 }
 
 
 impl HashStorage {
     
     pub fn load(path: &Path) -> Result<Self, anyhow::Error> {
+        
+        println!("load");
+        
         let contents = fs::read_to_string(path)?;
-        let hashes = serde_json::from_str(&contents)?;
-        Ok(HashStorage { hashes })
+
+        println!("what?");
+        
+        //let test: HashStorage = serde_json::from_str(&contents)?;
+
+        //println!("{:?}", test);
+
+
+        let hashes: HashStorage = match serde_json::from_str(&contents) {
+            Ok(hashes) => hashes,
+            Err(e) => {
+                warn!("[WARN][load()] No data exists in file 'hash map': {:?}", e);
+                let storage = HashStorage { hashes: HashMap::new() };
+                storage
+                //return Ok(storage)
+            }
+        };
+        
+        Ok(hashes)
     }
 
 

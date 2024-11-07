@@ -186,14 +186,23 @@ async fn main() {
     set_global_logger();
     info!("File Sync Program Start");
     
-    let mut storage = HashStorage {
-        hashes: HashMap::new(),
+    // let mut storage = HashStorage {
+    //     hashes: HashMap::new(),
+    // };
+    
+    let mut storage = match HashStorage::load(Path::new("./hash_storage/hash_value.json")) {
+        Ok(storage) => storage,
+        Err(e) => panic!("{:?}", e)
     };
+    
+    //.unwrap();
+
+    println!("test");
 
     // 파일 해시 업데이트
-    storage.update_hash("file1.txt".to_string(), "abcd1234".to_string().into());
-    storage.update_hash("file2.txt".to_string(), "efgh5678".to_string().into());
-
+    storage.update_hash("./file3.txt".to_string(), "12345".to_string().into());
+    storage.update_hash("./file6.txt".to_string(), "787788787".to_string().into());
+    
     // 해시값 저장
     storage.save(Path::new("./hash_storage/hash_value.json")).unwrap();
 

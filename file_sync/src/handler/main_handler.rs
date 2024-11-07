@@ -51,7 +51,6 @@ impl<C: ConfigService> MainHandler<C> {
         
         /* 해당 파일을 계속 감시해준다. */
         let (_tx, rx) = channel();
-        //let value: Result<(), SendError<()>> = tx.send(());
         
         for file in slave_address_vec.iter() {
          

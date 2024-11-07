@@ -43,7 +43,7 @@ pub use serde_json::{Value, from_reader};
 
 pub use async_trait::async_trait;
 
-pub use log::{info, error};
+pub use log::{info, error, warn};
 
 pub use flexi_logger::{
     Logger, 
