@@ -11,6 +11,7 @@ pub trait ConfigService {
     fn get_role(&self) -> String;
     fn get_slave_address(&self) -> Result<Vec<String>, anyhow::Error>;
     fn get_watch_file_list(&self) -> Vec<String>;
+    fn get_watch_dir_info(&self) -> String;
     
     //fn watch_file(&self) -> Result<(Result<(), SendError<()>>, Receiver<()>), anyhow::Error>;
     //fn get_watcher_delegator() -> Result<>;
@@ -41,6 +42,12 @@ impl ConfigServicePub {
 
 impl ConfigService for ConfigServicePub {
     
+
+    #[doc = "감시대상 디렉토리 경로를 반환해주는 함수"]
+    fn get_watch_dir_info(&self) -> String {
+        self.config.server.watch_path.clone()
+    }
+
 
     #[doc = "해당 프로그램의 역할을 조회해주는 함수"]
     fn get_role(&self) -> String {

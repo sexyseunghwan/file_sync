@@ -17,6 +17,7 @@ pub use std::{
     io::{ BufReader, Write, BufRead, Read, Cursor }
 };
 
+pub use derive_new::new;
 
 pub use reqwest::{ 
     Client, 
@@ -38,6 +39,8 @@ pub use serde::{
     Serialize,
     de::DeserializeOwned
 };
+
+pub use anyhow::anyhow;
 
 pub use serde_json::{Value, from_reader};
 

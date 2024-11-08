@@ -5,8 +5,9 @@ use crate::common::*;
 
 mod utils_modules;
 use handler::main_handler;
-use handler::main_handler::MainHandler;
-use service::config_service::ConfigServicePub;
+use handler::main_handler::*;
+use service::config_service::*;
+use service::request_service::*;
 use utils_modules::logger_utils::*;
 use utils_modules::io_utils::*;
 
@@ -14,6 +15,7 @@ mod handler;
 
 mod model;
 use model::Configs::*;
+use model::HashStorage::*;
 
 mod service;
 
@@ -177,7 +179,7 @@ async fn upload(mut payload: web::Payload) -> impl Responder {
 
 
 
-use model::HashStorage::*;
+
 
 #[tokio::main]
 async fn main() {
@@ -190,21 +192,22 @@ async fn main() {
     //     hashes: HashMap::new(),
     // };
     
-    let mut storage = match HashStorage::load(Path::new("./hash_storage/hash_value.json")) {
-        Ok(storage) => storage,
-        Err(e) => panic!("{:?}", e)
-    };
+    // let mut storage = match HashStorage::load(Path::new("./hash_storage/hash_value.json")) {
+    //     Ok(storage) => storage,
+    //     Err(e) => panic!("{:?}", e)
+    // };
     
-    //.unwrap();
+    // //.unwrap();
 
-    println!("test");
+    // println!("test");
 
-    // 파일 해시 업데이트
-    storage.update_hash("./file3.txt".to_string(), "12345".to_string().into());
-    storage.update_hash("./file6.txt".to_string(), "787788787".to_string().into());
+    // // 파일 해시 업데이트
+    // storage.update_hash("./file3.txt".to_string(), "12345".to_string().into());
+    // storage.update_hash("./file6.txt".to_string(), "787788787".to_string().into());
+    // storage.update_hash("./file13.txt".to_string(), "testest".to_string().into());
     
-    // 해시값 저장
-    storage.save(Path::new("./hash_storage/hash_value.json")).unwrap();
+    // // 해시값 저장
+    // storage.save(Path::new("./hash_storage/hash_value.json")).unwrap();
 
     // 해시값 로드
     //let loaded_storage = HashStorage::load(Path::new("./hash_storage/hash_value.json")).unwrap();
@@ -212,13 +215,14 @@ async fn main() {
     
 
     /* 종속 서비스 호출 */
-    //let config_service = ConfigServicePub::new();
+    let config_service = ConfigServicePub::new();
+    let request_service = RequestServicePub::new();
     
     /* 메인핸들러 호출 */
-    //let main_handler = MainHandler::new(config_service);
+    let main_handler = MainHandler::new(config_service, request_service);
     
     /* 메인 함수 */
-    //main_handler.task_main().await;
+    main_handler.task_main().await;
 
     //let config = read_toml_from_file::<Configs>("./Config.toml").unwrap();
     //println!("{:?}", config);
