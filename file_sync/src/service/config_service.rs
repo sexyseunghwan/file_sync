@@ -13,6 +13,8 @@ pub trait ConfigService {
     fn get_watch_file_list(&self) -> Vec<String>;
     fn get_watch_dir_info(&self) -> String;
     
+
+    //async fn handle_file_change(&self, file_path: &str, tx: &Sender<Result<(), String>>) -> Result<(), anyhow::Error>;
     //fn watch_file(&self) -> Result<(Result<(), SendError<()>>, Receiver<()>), anyhow::Error>;
     //fn get_watcher_delegator() -> Result<>;
 }
@@ -35,11 +37,12 @@ impl ConfigServicePub {
                 panic!("{:?}", e)
             }
         };
-           
+        
         Self { config }
     }    
 }
 
+#[async_trait]
 impl ConfigService for ConfigServicePub {
     
 
@@ -82,7 +85,16 @@ impl ConfigService for ConfigServicePub {
         watch_file_lists
         
     }
-    
+
+    // #[doc = ""]
+    // async fn handle_file_change(&self, file_path: &str, tx: &Sender<Result<(), String>>) -> Result<(), anyhow::Error> {
+
+        
+        
+
+    //     Ok(())
+    // }
+
     // fn watch_file(&self) -> Result<(Result<(), SendError<()>>, Receiver<()>), anyhow::Error> {
 
     //     /* file 리스트를 가져온다. */

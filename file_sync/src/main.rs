@@ -15,9 +15,11 @@ mod handler;
 
 mod model;
 use model::Configs::*;
-use model::HashStorage::*;
+//use model::HashStorage::*;
 
 mod service;
+
+mod repository;
 
 
 fn compute_hash(data: &str) -> String {
@@ -69,7 +71,7 @@ fn calculate_file_hash(file_path: &str) -> std::io::Result<Vec<u8>> {
 
 
 async fn test() -> Result<(), anyhow::Error> {
-
+    
     let url = "http://192.168.8.77:9000/upload";
     let file_path = "./file_test/master.txt";
     
@@ -95,7 +97,7 @@ async fn test() -> Result<(), anyhow::Error> {
         println!("Failed to send file: {}", response.status());
     }
 
-
+    
     //let body = Body::wrap_stream(stream); 
 
     //let mut buffer = Vec::new();
@@ -215,20 +217,20 @@ async fn main() {
     
 
     /* 종속 서비스 호출 */
-    let config_service = ConfigServicePub::new();
-    let request_service = RequestServicePub::new();
+    let config_service: ConfigServicePub = ConfigServicePub::new();     /* 설정 서비스 */
+    let request_service: RequestServicePub = RequestServicePub::new();  /* Request 서비스 */
     
     /* 메인핸들러 호출 */
     let main_handler = MainHandler::new(config_service, request_service);
     
     /* 메인 함수 */
     main_handler.task_main().await;
-
+    
     //let config = read_toml_from_file::<Configs>("./Config.toml").unwrap();
     //println!("{:?}", config);
 
     //test().await.unwrap();
-
+    
     
     
     /* 파일 비교 서비스 */
