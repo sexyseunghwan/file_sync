@@ -13,7 +13,7 @@ static HASH_STORAGE_CLIENT: once_lazy<Arc<Mutex<HashStorage>>> = once_lazy::new(
 
 #[doc = "Hash Storage 를 초기화해주는 함수"]
 pub fn initialize_hash_storage_clients() -> Arc<Mutex<HashStorage>> {
-    
+
     let config: Configs = match read_toml_from_file::<Configs>("./Config.toml") {
         Ok(config) => config,
         Err(e) => {
@@ -23,12 +23,12 @@ pub fn initialize_hash_storage_clients() -> Arc<Mutex<HashStorage>> {
     };
     
     let watch_path = config.server.watch_path.clone();
-    let hash_map_path = format!("{}hash_storage/hash_value.json", watch_path);
+    let hash_map_path = format!("{}hash_storage\\hash_value.json", watch_path);
     
     let hash_storage = match HashStorage::load(Path::new(&hash_map_path)) {
         Ok(hash_storage) => hash_storage,
         Err(e) => {
-            error!("[Error][WatchServicePub->new()] {:?}", e);
+            error!("[Error][WatchServicePub->new()] Cannot Create HashStorage: {:?}", e);
             panic!("{:?}", e)
         }
     };
@@ -56,6 +56,8 @@ impl HashStorage {
     #[doc = "Hashmap file을 읽어서 로드해주는 함수"]
     pub fn load(dir_path: &Path) -> Result<Self, anyhow::Error> {
         
+        println!("dir_path= {:?}", dir_path);
+
         let contents = fs::read_to_string(dir_path)?;
         let dir_path_str = dir_path.to_str().ok_or_else(|| anyhow!("[Error][load()]The path cannot be converted into a string."))?;
 

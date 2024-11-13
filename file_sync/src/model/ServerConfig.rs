@@ -7,4 +7,5 @@ pub struct ServerConfig {
     pub slave_address: Option<Vec<String>>,
     pub watch_path: String,
     pub specific_files: Vec<String>,
+    pub io_bound_improvement: bool
 }

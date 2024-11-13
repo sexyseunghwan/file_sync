@@ -1,3 +1,5 @@
+use serde::de::Error;
+
 use crate::common::*;
 
 use crate::utils_modules::hash_utils::*;
@@ -8,23 +10,26 @@ use crate::repository::hash_repository::*;
 #[async_trait]
 pub trait WatchService {
     
-   async fn watch_alarm(&self, file_path_slice: &str) -> (bool, String);     
-
+    fn monitor_file(&self, file_path_slice: &str) -> Result<(), anyhow::Error>;
+    async fn test(&self) -> Result<(), anyhow::Error>;
+    
 }
 
-
-
-pub struct WatchServicePub {
-
-}
-
+#[derive(Debug, Deserialize, Serialize, new)]
+pub struct WatchServicePub {}
 
 
 #[async_trait]
 impl WatchService for WatchServicePub {
     
+
+    async fn test(&self) -> Result<(), anyhow::Error> {
+
+        Err(anyhow!("test"))
+    }
+
     #[doc = "docs"]
-    async fn watch_alarm(&self, file_path_slice: &str) -> (bool, String) {
+    fn monitor_file(&self, file_path_slice: &str) -> Result<(), anyhow::Error> {
         
         /*  
             현재 이벤트가 걸린 파일의 Hash value 
@@ -34,25 +39,24 @@ impl WatchService for WatchServicePub {
             .unwrap_or_else(|_| vec![]);
         
         let storage_hash_guard = get_hash_storage();
-
         let mut storage_hash = match storage_hash_guard.lock() {
             Ok(storage_hash) => {
                 storage_hash
             },
             Err(e) => {
-                let err_msg = e.to_string();
-                return (false, err_msg)
+                return Err(anyhow!("{:?}", e))
             }
         };
         
         let storage_hash_val = storage_hash.get_hash(file_path_slice);
         
+        /* 저장된 해쉬값과 이벤트로 변경된 파일의 해쉬값이 다른경우 */
         if storage_hash_val != event_hash_val {
             storage_hash.update_hash(file_path_slice.to_string(), event_hash_val);
-            storage_hash.save();
+            storage_hash.save()?;
         }
-        
-        (true, String::from("test"))
+
+        Ok(())
     }
 
 }

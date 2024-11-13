@@ -6,8 +6,11 @@ use crate::common::*;
 mod utils_modules;
 use handler::main_handler;
 use handler::main_handler::*;
-use service::config_service::*;
-use service::request_service::*;
+
+use service::config_request_service::*;
+
+use service::watch_service::*;
+
 use utils_modules::logger_utils::*;
 use utils_modules::io_utils::*;
 
@@ -15,7 +18,6 @@ mod handler;
 
 mod model;
 use model::Configs::*;
-//use model::HashStorage::*;
 
 mod service;
 
@@ -119,10 +121,11 @@ async fn test() -> Result<(), anyhow::Error> {
     // let mut file = TokioFile::open(file_path).await.expect("Failed to open file");
     // let mut buffer = Vec::new();
     
+
+
+
     // /* 파일의 모든 내용을 읽어서 버퍼에 저장 */ 
     // file.read_to_end(&mut buffer).await.expect("Failed to read file");
-
-
 
     // //let stream = Cursor::new(buffer);
     
@@ -181,8 +184,6 @@ async fn upload(mut payload: web::Payload) -> impl Responder {
 
 
 
-
-
 #[tokio::main]
 async fn main() {
 
@@ -217,18 +218,18 @@ async fn main() {
     
 
     /* 종속 서비스 호출 */
-    let config_service: ConfigServicePub = ConfigServicePub::new();     /* 설정 서비스 */
-    let request_service: RequestServicePub = RequestServicePub::new();  /* Request 서비스 */
-    
+    let config_service = Arc::new(ConfigRequestServicePub::new());     /* 설정 서비스 */
+    let watch_service = Arc::new(WatchServicePub::new());
+
     /* 메인핸들러 호출 */
-    let main_handler = MainHandler::new(config_service, request_service);
+    let main_handler = MainHandler::new(config_service, watch_service);
     
     /* 메인 함수 */
     main_handler.task_main().await;
     
     //let config = read_toml_from_file::<Configs>("./Config.toml").unwrap();
     //println!("{:?}", config);
-
+    
     //test().await.unwrap();
     
     
@@ -252,7 +253,7 @@ async fn main() {
     //     내부적으로 cursor 형식으로 비교를 수행한다.
     // */
     // while slave_lines_iter.peek().is_some() || master_lines_iter.peek().is_some() {
-        
+    
     //     /* master file, slave file 최상단 데이터 */
     //     match (slave_lines_iter.peek(), master_lines_iter.peek()) {
             

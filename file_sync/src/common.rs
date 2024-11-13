@@ -30,7 +30,9 @@ pub use reqwest::{
 pub use tokio::{
     fs::File as TokioFile,
     io::BufReader as TokioBufReader,
-    io::AsyncReadExt
+    io::AsyncReadExt,
+    spawn,
+    task
 }; 
 
 
@@ -90,7 +92,10 @@ pub use tokio_util::{
 };
 
 
-pub use futures::stream::TryStreamExt;
+pub use futures::{
+    stream::TryStreamExt,
+    future::join_all
+};
 
 
 pub use once_cell::sync::Lazy as once_lazy;
