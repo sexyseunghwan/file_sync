@@ -218,11 +218,11 @@ async fn main() {
     
 
     /* 종속 서비스 호출 */
-    let config_service = Arc::new(ConfigRequestServicePub::new());     /* 설정 서비스 */
+    let config_req_service = Arc::new(ConfigRequestServicePub::new());
     let watch_service = Arc::new(WatchServicePub::new());
 
     /* 메인핸들러 호출 */
-    let main_handler = MainHandler::new(config_service, watch_service);
+    let main_handler = MainHandler::new(config_req_service, watch_service);
     
     /* 메인 함수 */
     main_handler.task_main().await;

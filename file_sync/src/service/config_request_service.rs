@@ -15,13 +15,10 @@ pub trait ConfigRequestService {
     fn get_watch_dir_info(&self) -> String;
     
 
-    //async fn handle_file_change(&self, file_path: &str, tx: &Sender<Result<(), String>>) -> Result<(), anyhow::Error>;
-    //fn watch_file(&self) -> Result<(Result<(), SendError<()>>, Receiver<()>), anyhow::Error>;
-    //fn get_watcher_delegator() -> Result<>;
-    
     async fn send_info_to_slave(&self, file_path: &str) -> Result<(), anyhow::Error>;
     async fn send_info_to_slave_io(&self, file_path: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error>;
     async fn send_info_to_slave_memory(&self, file_path: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error>;
+    fn handle_async_function(&self, task_res: Vec<Result<Result<(), anyhow::Error>, task::JoinError>>) -> Result<(), anyhow::Error>;
 }
 
 
@@ -101,9 +98,37 @@ impl ConfigRequestService for ConfigRequestServicePub {
         
     }
     
-    #[doc = ""]
-    async fn send_info_to_slave(&self, file_path: &str) -> Result<(), anyhow::Error> {
+    #[doc = "async 함수들의 결과를 파싱해주는 함수"]
+    fn handle_async_function(&self, task_res: Vec<Result<Result<(), anyhow::Error>, task::JoinError>>) -> Result<(), anyhow::Error> {
 
+        let mut all_good = true;
+
+        for result in task_res {
+            match result {
+                Ok(Ok(())) => continue,  // Success path
+                Ok(Err(e)) => {
+                    error!("Task failed with error: {}", e);
+                    all_good = false;
+                },
+                Err(e) => {
+                    // This is the case where the spawned task panicked or couldn't be executed
+                    error!("Task panicked or couldn't be executed: {}", e);
+                    all_good = false;
+                }
+            }
+        }
+
+        if all_good {
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("Some tasks failed"))
+        }
+
+    }
+
+    #[doc = "master 에서 파일이 변경되는 경우 해당 변경 정보를 slave 서버에 보내준다."]
+    async fn send_info_to_slave(&self, file_path: &str) -> Result<(), anyhow::Error> {
+        
         let slave_url = self
             .config
             .server
@@ -133,7 +158,7 @@ impl ConfigRequestService for ConfigRequestServicePub {
             let client = self.client.clone();
             let data_clone = file_data.clone();
             let parsing_url = format!("http://{}/upload",url);
-            
+             
             task::spawn(async move {
                 
                 let body = Body::from(data_clone);
@@ -156,10 +181,9 @@ impl ConfigRequestService for ConfigRequestServicePub {
             })
         }).collect();
 
-        let results = join_all(tasks).await;
-        results.into_iter().collect::<Result<Vec<_>, _>>()?;
-        
-        Ok(())
+        let results: Vec<Result<Result<(), anyhow::Error>, task::JoinError>> = join_all(tasks).await;
+        self.handle_async_function(results)
+
     }
     
 
@@ -195,81 +219,7 @@ impl ConfigRequestService for ConfigRequestServicePub {
             })
         }).collect();
 
-        let results = join_all(tasks).await;
-        results.into_iter().collect::<Result<Vec<_>, _>>()?;
-        
-        Ok(())
+        let results: Vec<Result<Result<(), anyhow::Error>, task::JoinError>> = join_all(tasks).await;
+        self.handle_async_function(results)
     }
-
-
-    
-        // for url in slave_url {
-
-        //     let file_data = tokio::fs::read(file_path).await?;
-
-        //     let data_clone = file_data.clone();
-        //     let body = Body::from(data_clone);
-            
-        //     let response = self.client.post(&url)
-        //         .body(body)
-        //         .send()
-        //         .await?;
-
-        //     if response.status().is_success() {
-        //         info!("File was sent successfully.: {}", &url);
-        //     } else {
-        //         anyhow!("[Error][send_info_to_slave_memory()] Failed to send file: {}", response.status());
-        //     }
-        // }
-
-    // #[doc = ""]
-    // async fn handle_file_change(&self, file_path: &str, tx: &Sender<Result<(), String>>) -> Result<(), anyhow::Error> {
-
-        
-        
-
-    //     Ok(())
-    // }
-
-    // fn watch_file(&self) -> Result<(Result<(), SendError<()>>, Receiver<()>), anyhow::Error> {
-
-    //     /* file 리스트를 가져온다. */
-    //     let files = self.config.server.specific_files.clone();
-        
-    //     /* 지정된 file 리스트가 하나도 없다면 */
-    //     if files.len() == 0 {
-    //         return Err(anyhow!("[Error][watch_file()] There is no list of files to monitor."))
-    //     }
-        
-        
-    //     let mut hotwatch = Hotwatch::new()?;
-
-    //     let (tx, rx) = channel();
-
-    //     let value: Result<(), SendError<()>> = tx.send(());
-
-    //     for file in files.iter() {
-         
-    //         let file_path = file.to_string();
-            
-    //         hotwatch.watch(file_path, move |event: Event| {
-            
-    //             if let WatchEventKind::Modify(_) = event.kind {
-    //                 value.expect("Failed to send event");
-    //                 //println!("{:?} changed!", event.paths[0]);
-    //             }
-        
-    //         })?
-    //     }
-
-    //     Ok((value, rx))
-    // }
-
-    // #[doc = "docs"]
-    // fn get_watcher_delegator() -> Result<> {
-        
-
-
-    // }
-
 }
