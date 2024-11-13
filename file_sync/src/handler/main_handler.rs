@@ -7,8 +7,8 @@ use crate::service::watch_service::*;
 #[derive(Debug)]
 pub struct MainHandler<C,W>
 where 
-    C: ConfigRequestService + Sync + Send + 'static,
-    W: WatchService + Sync + Send + 'static
+    C: ConfigRequestService,
+    W: WatchService
 {
     config_req_service: Arc<C>,
     watch_service: Arc<W>
@@ -17,8 +17,8 @@ where
 
 impl<C,W> MainHandler<C,W> 
 where
-    C: ConfigRequestService + Sync + Send + 'static,
-    W: WatchService + Sync + Send + 'static 
+    C: ConfigRequestService,
+    W: WatchService
 {
     
     pub fn new(config_req_service: Arc<C>, watch_service: Arc<W>) -> Self {
@@ -90,7 +90,6 @@ where
                 }
             })?;
         }
-        
         
         /* rx 부분 */
         /* for문을 통해서 receive 를 계속 감시한다. */
