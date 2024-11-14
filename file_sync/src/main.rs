@@ -23,54 +23,7 @@ mod service;
 
 mod repository;
 
-
-fn compute_hash(data: &str) -> String {
-    let mut hasher = Sha256::new();
-    hasher.update(data.as_bytes());
-    format!("{:x}", hasher.finalize())
-}
-
-fn hash_file(path: &Path) ->Result<Vec<u8>, anyhow::Error> {
-    
-    let mut file = File::open(path)?;
-    let mut hasher = Sha256::new();
-    let mut buffer = Vec::new();
-    
-    // 파일의 메타데이터를 통해 크기를 확인
-    let metadata = file.metadata()?;
-    if metadata.len() == 0 {
-        file = File::open(path)?;   
-    }
-
-    file.read_to_end(&mut buffer)?;
-    
-    //println!("buffer= {:?}", buffer);
-    
-    hasher.update(&buffer);
-
-    //println!("hasher= {:?}", hasher.clone().finalize().to_vec());
-
-    Ok(hasher.finalize().to_vec())
-
-}
-
-
-fn calculate_file_hash(file_path: &str) -> std::io::Result<Vec<u8>> {
-    let mut file = File::open(file_path)?;
-    let mut hasher = Sha256::new();
-    let mut buffer = [0; 1024]; // 파일을 조각으로 읽기
-
-    loop {
-        let n = file.read(&mut buffer)?;
-        if n == 0 {
-            break;
-        }
-        hasher.update(&buffer[..n]);
-    }
-
-    Ok(hasher.finalize().to_vec())
-}
-
+mod middleware;
 
 async fn test() -> Result<(), anyhow::Error> {
     
@@ -221,6 +174,7 @@ async fn main() {
     let config_req_service = Arc::new(ConfigRequestServicePub::new());
     let watch_service = Arc::new(WatchServicePub::new());
 
+    /*  */
     /* 메인핸들러 호출 */
     let main_handler = MainHandler::new(config_req_service, watch_service);
     
@@ -235,8 +189,6 @@ async fn main() {
     
     
     /* 파일 비교 서비스 */
-
-
     // let slave_file = File::open("./file_test/slave.txt").unwrap();   /* 원본파일 - slave */
     // let master_file = File::open("./file_test/master.txt").unwrap();  /* 수정파일 - master */
     

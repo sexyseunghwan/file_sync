@@ -2,13 +2,17 @@ use crate::common::*;
 
 use crate::service::config_request_service::*;
 use crate::service::watch_service::*;
+use crate::service::api_service::*;
+
+use crate::middleware::middle_ware::*;
+
 
 
 #[derive(Debug)]
 pub struct MainHandler<C,W>
 where 
-    C: ConfigRequestService,
-    W: WatchService
+    C: ConfigRequestService + Sync + Send + 'static,
+    W: WatchService + Sync + Send + 'static
 {
     config_req_service: Arc<C>,
     watch_service: Arc<W>
@@ -17,8 +21,8 @@ where
 
 impl<C,W> MainHandler<C,W> 
 where
-    C: ConfigRequestService,
-    W: WatchService
+    C: ConfigRequestService + Sync + Send + 'static,
+    W: WatchService + Sync + Send + 'static
 {
     
     pub fn new(config_req_service: Arc<C>, watch_service: Arc<W>) -> Self {
@@ -91,10 +95,11 @@ where
             })?;
         }
         
-        /* rx 부분 */
-        /* for문을 통해서 receive 를 계속 감시한다. */
+        /* 
+            rx 부분 - for문을 통해서 receive 를 계속 감시한다.
+        */
         for received in rx {
-
+            
             match received {
                 Ok(file_name) => {
                     
@@ -106,18 +111,19 @@ where
                         }
                     };
 
-                    // /* 변경 파일이 있는 경우 -> slave 파일에 변경 파일을 보내준다. */
-                    // if watch_res {
-                    //     match self.config_req_service.send_info_to_slave(&file_name).await {
-                    //         Ok(_) => (),
-                    //         Err(e) => {
-                    //             error!("{:?}", e);
-                    //             continue
-                    //         }
-                    //     }
-                    // }   
-                    
-                    info!("File changed successfully.: {}", &file_name);
+                    /* 변경 파일이 있는 경우 -> slave 파일에 변경 파일을 보내준다. */
+                    if watch_res {
+                        match self.config_req_service.send_info_to_slave(&file_name).await {
+                            Ok(_) => {
+                                info!("Successfully sent files to slave servers. : {}", &file_name);
+                                ()
+                            },
+                            Err(e) => {
+                                error!("{:?}", e);
+                                continue
+                            }
+                        }
+                    }   
                 },
                 Err(e) => {
                     error!("[Error][master_task()] Error processing file change: {:?}", e);
@@ -129,16 +135,55 @@ where
         
         Ok(())    
     }   
-    
-
 
     
     #[doc = "프로그램 role 이 slave 인경우의 작업"]
     pub async fn slave_task(&self) -> Result<(), anyhow::Error> {
-        
-        
 
+        let slave_host = self.config_req_service.get_slave_host()?;
+        let master_address = self.config_req_service.get_master_address()?;
+
+
+        // 아 이쪽 코드 부분 상당히 마음에 안드는데 진짜로...?!
+        let config_req_service_clone = Arc::clone(&self.config_req_service);
+        let watch_service_clone = Arc::clone(&self.watch_service);
+        
+        HttpServer::new(move || {
+            App::new()
+                .wrap(CheckIp::new(master_address.clone()))
+                .app_data(config_req_service_clone.clone())
+                .app_data(watch_service_clone.clone())
+                .service(upload)
+        })
+        .bind(slave_host)?
+        .run()
+        .await?;
+        
         Ok(())
     }
+    
+    
+    //.route("/upload", web::post().to(self.upload()))
+    // async fn upload(&self, req: web::Query<FileInfo>, mut payload: web::Payload) -> impl Responder {
+
+
+    //     HttpResponse::Ok().body("File uploaded successfully")
+    // }
+
+    // #[post("/upload")]
+    // async fn upload(req: web::Query<FileInfo>, mut payload: web::Payload) -> impl Responder {
+        
+    //     println!("Received file: {}", req.filename);
+        
+    //     let mut file = File::create("./download_file/uploaded_file.txt").expect("Failed to create file");
+
+    //     /* 스트림에서 데이터를 읽고 파일에 쓴다. */ 
+    //     while let Ok(Some(chunk)) = payload.try_next().await {
+    //         let data = chunk;
+    //         let _ = file.write_all(&data);
+    //     }
+            
+    //     HttpResponse::Ok().body("File uploaded successfully")
+    // }
 
 }

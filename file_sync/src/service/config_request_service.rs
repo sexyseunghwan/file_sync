@@ -1,5 +1,3 @@
-use anyhow::anyhow;
-
 use crate::common::*;
 
 use crate::model::Configs::*;
@@ -13,11 +11,13 @@ pub trait ConfigRequestService {
     fn get_slave_address(&self) -> Result<Vec<String>, anyhow::Error>;
     fn get_watch_file_list(&self) -> Vec<String>;
     fn get_watch_dir_info(&self) -> String;
+    fn get_slave_host(&self) -> Result<String, anyhow::Error>;
+    fn get_master_address(&self) -> Result<Vec<String>, anyhow::Error>;
     
 
     async fn send_info_to_slave(&self, file_path: &str) -> Result<(), anyhow::Error>;
-    async fn send_info_to_slave_io(&self, file_path: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error>;
-    async fn send_info_to_slave_memory(&self, file_path: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error>;
+    async fn send_info_to_slave_io(&self, file_path: &str, file_name: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error>;
+    async fn send_info_to_slave_memory(&self, file_path: &str, file_name: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error>;
     fn handle_async_function(&self, task_res: Vec<Result<Result<(), anyhow::Error>, task::JoinError>>) -> Result<(), anyhow::Error>;
 }
 
@@ -58,6 +58,32 @@ impl ConfigRequestServicePub {
 impl ConfigRequestService for ConfigRequestServicePub {
     
 
+    #[doc = "master_address 정보를 가져와주는 함수"]
+    fn get_master_address(&self) -> Result<Vec<String>, anyhow::Error> {
+
+        let master_address: Vec<String> = self
+            .config
+            .server
+            .master_address
+            .clone()
+            .ok_or_else(|| anyhow!("[Error][get_master_address()]  There was a problem processing information 'master_address'."))?;
+
+        Ok(master_address)
+    }
+
+    #[doc = "slave_host 정보를 가져와주는 함수"]
+    fn get_slave_host(&self) -> Result<String, anyhow::Error> {
+        
+        let slave_host = self
+            .config
+            .server
+            .slave_host
+            .clone()
+            .ok_or_else(|| anyhow!("[Error][get_slave_host()] There was a problem processing information 'slave_host'."))?;
+        
+        Ok(slave_host)
+    }   
+    
     #[doc = "감시대상 디렉토리 경로를 반환해주는 함수"]
     fn get_watch_dir_info(&self) -> String {
         self.config.server.watch_path.clone()
@@ -135,13 +161,22 @@ impl ConfigRequestService for ConfigRequestServicePub {
             .slave_address
             .as_ref()
             .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] 'slave_url' not found."))?;
-           
+
+        println!("send_info_to_slave= {:?}", slave_url);
+
+        let path = Path::new(file_path);
+        let file_name = path.file_name()
+            .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] The file name is not valid."))?
+            .to_str()
+            .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] There was a problem converting the file name to a string."))?;
+
+        
         let io_improvement_option = self.config.server.io_bound_improvement;
         
         if io_improvement_option {
-            self.send_info_to_slave_io(file_path, slave_url.clone()).await?;
+            self.send_info_to_slave_io(file_path, file_name, slave_url.clone()).await?;
         } else {
-            self.send_info_to_slave_memory(file_path, slave_url.clone()).await?;
+            self.send_info_to_slave_memory(file_path, file_name, slave_url.clone()).await?;
         }
 
         Ok(())
@@ -149,7 +184,7 @@ impl ConfigRequestService for ConfigRequestServicePub {
     
     
     #[doc = "i/o 바운드 효율코드"]
-    async fn send_info_to_slave_io(&self, file_path: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error> {
+    async fn send_info_to_slave_io(&self, file_path: &str, file_name: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error> {
 
         let file_data = tokio::fs::read(file_path).await?;
         
@@ -157,16 +192,19 @@ impl ConfigRequestService for ConfigRequestServicePub {
             
             let client = self.client.clone();
             let data_clone = file_data.clone();
-            let parsing_url = format!("http://{}/upload",url);
-             
+            let parsing_url = format!("http://{}/upload?filename={}", url, file_name);
+
+            println!("parsing_url=  {:?}",parsing_url);
+
             task::spawn(async move {
                 
                 let body = Body::from(data_clone);
                 let response = client.post(&parsing_url)
+                    .header("Content-Type", "multipart/form-data")
                     .body(body)
                     .send()
                     .await;
-    
+                
                 match response {
                     Ok(resp) => {
                         if resp.status().is_success() {
@@ -188,12 +226,12 @@ impl ConfigRequestService for ConfigRequestServicePub {
     
 
     #[doc = "메모리 효율코드"]
-    async fn send_info_to_slave_memory(&self, file_path: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error> {
+    async fn send_info_to_slave_memory(&self, file_path: &str, file_name: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error> {
         
         let tasks: Vec<_> = slave_url.into_iter().map(|url| {
                 
             let client = self.client.clone();
-            let parsing_url = format!("http://{}/upload",url);
+            let parsing_url = format!("http://{}/upload?filename={}", url, file_name);
             let file_path = file_path.to_string().clone();
 
             task::spawn(async move {
@@ -201,10 +239,11 @@ impl ConfigRequestService for ConfigRequestServicePub {
                 let file_data = tokio::fs::read(file_path).await?;
                 let body = Body::from(file_data);
                 let response = client.post(&parsing_url)
+                    .header("Content-Type", "multipart/form-data")
                     .body(body)
                     .send()
                     .await;
-    
+                
                 match response {
                     Ok(resp) => {
                         if resp.status().is_success() {

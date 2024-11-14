@@ -16,7 +16,8 @@ pub use std::{
     time::Duration,
     path::{ Path, PathBuf },
     fs::File,
-    io::{ BufReader, Write, BufRead, Read, Cursor }
+    io::{ BufReader, Write, BufRead, Read, Cursor },
+    task::{ Context, Poll }
 };
 
 pub use derive_new::new;
@@ -63,6 +64,18 @@ pub use flexi_logger::{
 };
 
 
+// pub use actix_web::{
+//     web, 
+//     App, 
+//     HttpServer, 
+//     Responder, 
+//     HttpRequest,
+//     HttpResponse,
+//     post,
+//     web::Bytes,
+    
+// };
+
 pub use actix_web::{
     web, 
     App, 
@@ -71,9 +84,14 @@ pub use actix_web::{
     HttpRequest,
     HttpResponse,
     post,
-    web::Bytes,
-    
+    web::{Bytes,route},
+    dev::{ ServiceRequest, ServiceResponse, Transform, Service },
+    middleware,
+    Error,
+    http::header
 };
+
+
 pub use hotwatch::{
     Hotwatch, 
     Event, 
@@ -94,7 +112,11 @@ pub use tokio_util::{
 
 pub use futures::{
     stream::TryStreamExt,
-    future::join_all
+    future::join_all,
+    future::{
+        Ready as FuterReady,
+        ok
+    }
 };
 
 
