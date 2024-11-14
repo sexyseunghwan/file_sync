@@ -21,3 +21,22 @@ pub fn read_toml_from_file<T: DeserializeOwned>(file_path: &str) -> Result<T, an
 
     Ok(toml)
 }
+
+
+#[doc = "특정 디렉토리/파일이 존재하지 않는경우 생성해주는 함수."]
+pub fn create_dir_and_file(dir_path: &str, file_name: &str) -> Result<PathBuf, anyhow::Error> {
+
+    let path = Path::new(dir_path);
+
+    if !path.exists() {
+        fs::create_dir_all(path)?;
+    }
+
+    let file_path: PathBuf = path.join(file_name);
+
+    if !file_path.exists() {
+        let _file = File::create(&file_path)?;
+    }
+    
+    Ok(file_path)
+}

@@ -1,6 +1,7 @@
 [server]
 role = "master"
 slave_address = ["192.168.8.77:9000"]
-watch_path = "C:\\Users\\user\\Desktop\\private\\work_code\\FILE_SYNC\\file_sync\\file_sync\\file_test\\"
+#watch_path = "C:\\Users\\user\\Desktop\\private\\work_code\\FILE_SYNC\\file_sync\\file_sync\\file_test\\"
+watch_path = "/Users/sinseunghwan/Documents/work_code/file_sync/file_sync/file_test/"
 specific_files = ["master.txt", "slave.txt"]
 io_bound_improvement = true

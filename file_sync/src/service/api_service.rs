@@ -18,8 +18,9 @@ async fn upload
 ) -> Result<HttpResponse, Error> {
     
     let monitoring_path = config_req_service.get_watch_dir_info();
-    let chg_file_dir = format!("{}\\{}", monitoring_path, req.filename);
-    
+    //let chg_file_dir = format!("{}\\{}", monitoring_path, req.filename);
+    let chg_file_dir = format!("{}/{}", monitoring_path, req.filename);
+
     let mut chg_file = match File::create(chg_file_dir) {
         Ok(chg_file) => chg_file,
         Err(e) => {

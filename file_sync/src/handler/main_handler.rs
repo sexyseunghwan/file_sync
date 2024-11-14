@@ -11,8 +11,8 @@ use crate::middleware::middle_ware::*;
 #[derive(Debug)]
 pub struct MainHandler<C,W>
 where 
-    C: ConfigRequestService,// + Sync + Send + 'static,
-    W: WatchService,// + Sync + Send + 'static
+    C: ConfigRequestService,
+    W: WatchService,
 {
     config_req_service: C,
     watch_service: W
@@ -21,8 +21,8 @@ where
 
 impl<C,W> MainHandler<C,W> 
 where
-    C: ConfigRequestService,// + Sync + Send + 'static,
-    W: WatchService// + Sync + Send + 'static
+    C: ConfigRequestService,
+    W: WatchService
 {
     
     pub fn new(config_req_service: C, watch_service: W) -> Self {
@@ -80,9 +80,13 @@ where
                     match event.paths[0].to_str() {
                         Some(file_path) => {
 
-                            /* 변경이 감지된 파일 경로를 파싱해주는 부분 */
-                            let file_path_slice = &file_path.chars().skip(4).collect::<String>();
-                            
+                            /* 
+                                변경이 감지된 파일 경로를 파싱해주는 부분
+                                - 이쪽을 앞의 네글짜 제외하는 방식으로 하면 안될듯. 
+                            */
+                            //let file_path_slice = &file_path.chars().skip(4).collect::<String>();
+                            let file_path_slice = &file_path.chars().collect::<String>();
+
                             tx_clone.send(Ok(file_path_slice.clone()))
                                 .unwrap_or_else(|err| error!("[Error][master_task()] Failed to send error message: {}", err));
                         },
@@ -93,8 +97,9 @@ where
                     }
                 }
             })?;
-        }
+        } 
         
+
         /* 
             rx 부분 - for문을 통해서 receive 를 계속 감시한다.
         */

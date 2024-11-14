@@ -171,13 +171,13 @@ impl ConfigRequestService for ConfigRequestServicePub {
             .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] There was a problem converting the file name to a string."))?;
 
         
-        let io_improvement_option = self.config.server.io_bound_improvement;
+        // let io_improvement_option = self.config.server.io_bound_improvement;
         
-        if io_improvement_option {
-            self.send_info_to_slave_io(file_path, file_name, slave_url.clone()).await?;
-        } else {
-            self.send_info_to_slave_memory(file_path, file_name, slave_url.clone()).await?;
-        }
+        // if io_improvement_option {
+        //     self.send_info_to_slave_io(file_path, file_name, slave_url.clone()).await?;
+        // } else {
+        //     self.send_info_to_slave_memory(file_path, file_name, slave_url.clone()).await?;
+        // }
 
         Ok(())
     }

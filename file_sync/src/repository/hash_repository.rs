@@ -23,9 +23,12 @@ pub fn initialize_hash_storage_clients() -> Arc<Mutex<HashStorage>> {
     };
     
     let watch_path = config.server.watch_path.clone();
-    let hash_map_path = format!("{}hash_storage\\hash_value.json", watch_path);
+    //let hash_map_path = format!("{}hash_storage\\hash_value.json", watch_path);
+    let hash_map_dir = format!("{}hash_storage", watch_path);
+    let hash_map_file_name = String::from("hash_value.json");
     
-    let hash_storage = match HashStorage::load(Path::new(&hash_map_path)) {
+
+    let hash_storage = match HashStorage::load(&hash_map_dir) {
         Ok(hash_storage) => hash_storage,
         Err(e) => {
             error!("[Error][WatchServicePub->new()] Cannot Create HashStorage: {:?}", e);
@@ -37,7 +40,7 @@ pub fn initialize_hash_storage_clients() -> Arc<Mutex<HashStorage>> {
 }
 
 
-#[doc = ""]
+#[doc = "Hash Storage 를 불러와주는 함수"]
 pub fn get_hash_storage() -> Arc<Mutex<HashStorage>> {
     let hash_storage= &HASH_STORAGE_CLIENT;
     Arc::clone(hash_storage)
@@ -54,13 +57,16 @@ impl HashStorage {
 
     
     #[doc = "Hashmap file을 읽어서 로드해주는 함수"]
-    pub fn load(dir_path: &Path) -> Result<Self, anyhow::Error> {
+    pub fn load(hash_map_dir: &str) -> Result<Self, anyhow::Error> {
         
-        println!("dir_path= {:?}", dir_path);
+        /* 디렉토리와 파일이 존재하는지 확인 */
+        let dir_path = create_dir_and_file(hash_map_dir, "hash_value.json")?;
 
-        let contents = fs::read_to_string(dir_path)?;
-        let dir_path_str = dir_path.to_str().ok_or_else(|| anyhow!("[Error][load()]The path cannot be converted into a string."))?;
-
+        let contents = fs::read_to_string(&dir_path)?;
+        let dir_path_str = dir_path
+            .to_str()
+            .ok_or_else(|| anyhow!("[Error][load()]The path cannot be converted into a string."))?;
+        
         let hash_storage: HashStorage = match serde_json::from_str(&contents) {
             Ok(hashes) => hashes,
             Err(e) => {

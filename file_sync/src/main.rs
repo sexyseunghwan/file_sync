@@ -174,16 +174,21 @@ async fn main() {
     // let config_req_service = Arc::new(ConfigRequestServicePub::new());
     // let watch_service = Arc::new(WatchServicePub::new());   
     
+    println!("test1");
     let config_req_service = ConfigRequestServicePub::new();
+    
+    println!("test2");
     let watch_service = WatchServicePub::new();   
 
-    
+    println!("test3");
     /* 여기서 program 의 role 이 무엇인지 판단해줘야 할 필요가 있어보임. */ 
     
 
     /* 메인핸들러 호출 */
     let main_handler = MainHandler::new(config_req_service, watch_service);
     
+    println!("test4");
+
     /* 메인 함수 */
     main_handler.task_main().await;
     
