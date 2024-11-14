@@ -171,10 +171,16 @@ async fn main() {
     
 
     /* 종속 서비스 호출 */
-    let config_req_service = Arc::new(ConfigRequestServicePub::new());
-    let watch_service = Arc::new(WatchServicePub::new());
+    // let config_req_service = Arc::new(ConfigRequestServicePub::new());
+    // let watch_service = Arc::new(WatchServicePub::new());   
+    
+    let config_req_service = ConfigRequestServicePub::new();
+    let watch_service = WatchServicePub::new();   
 
-    /*  */
+    
+    /* 여기서 program 의 role 이 무엇인지 판단해줘야 할 필요가 있어보임. */ 
+    
+
     /* 메인핸들러 호출 */
     let main_handler = MainHandler::new(config_req_service, watch_service);
     

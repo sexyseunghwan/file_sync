@@ -11,21 +11,21 @@ use crate::middleware::middle_ware::*;
 #[derive(Debug)]
 pub struct MainHandler<C,W>
 where 
-    C: ConfigRequestService + Sync + Send + 'static,
-    W: WatchService + Sync + Send + 'static
+    C: ConfigRequestService,// + Sync + Send + 'static,
+    W: WatchService,// + Sync + Send + 'static
 {
-    config_req_service: Arc<C>,
-    watch_service: Arc<W>
+    config_req_service: C,
+    watch_service: W
 }
 
 
 impl<C,W> MainHandler<C,W> 
 where
-    C: ConfigRequestService + Sync + Send + 'static,
-    W: WatchService + Sync + Send + 'static
+    C: ConfigRequestService,// + Sync + Send + 'static,
+    W: WatchService// + Sync + Send + 'static
 {
     
-    pub fn new(config_req_service: Arc<C>, watch_service: Arc<W>) -> Self {
+    pub fn new(config_req_service: C, watch_service: W) -> Self {
         Self { config_req_service, watch_service }
     }
     
@@ -46,12 +46,12 @@ where
 
         } else {
             
-            match self.slave_task().await {
-                Ok(_) => (),
-                Err(e) => {
-                    error!("{:?}", e);
-                }
-            }
+            // match self.slave_task().await {
+            //     Ok(_) => (),
+            //     Err(e) => {
+            //         error!("{:?}", e);
+            //     }
+            // }
         }
     }
 
@@ -137,30 +137,30 @@ where
     }   
 
     
-    #[doc = "프로그램 role 이 slave 인경우의 작업"]
-    pub async fn slave_task(&self) -> Result<(), anyhow::Error> {
+    // #[doc = "프로그램 role 이 slave 인경우의 작업"]
+    // pub async fn slave_task(&self) -> Result<(), anyhow::Error> {
 
-        let slave_host = self.config_req_service.get_slave_host()?;
-        let master_address = self.config_req_service.get_master_address()?;
+    //     let slave_host = self.config_req_service.get_slave_host()?;
+    //     let master_address = self.config_req_service.get_master_address()?;
 
 
-        // 아 이쪽 코드 부분 상당히 마음에 안드는데 진짜로...?!
-        let config_req_service_clone = Arc::clone(&self.config_req_service);
-        let watch_service_clone = Arc::clone(&self.watch_service);
+    //     // 아 이쪽 코드 부분 상당히 마음에 안드는데 진짜로...?!
+    //     let config_req_service_clone = Arc::clone(&self.config_req_service);
+    //     let watch_service_clone = Arc::clone(&self.watch_service);
         
-        HttpServer::new(move || {
-            App::new()
-                .wrap(CheckIp::new(master_address.clone()))
-                .app_data(config_req_service_clone.clone())
-                .app_data(watch_service_clone.clone())
-                .service(upload)
-        })
-        .bind(slave_host)?
-        .run()
-        .await?;
+    //     HttpServer::new(move || {
+    //         App::new()
+    //             .wrap(CheckIp::new(master_address.clone()))
+    //             .app_data(config_req_service_clone.clone())
+    //             .app_data(watch_service_clone.clone())
+    //             .service(upload)
+    //     })
+    //     .bind(slave_host)?
+    //     .run()
+    //     .await?;
         
-        Ok(())
-    }
+    //     Ok(())
+    // }
     
     
     //.route("/upload", web::post().to(self.upload()))
