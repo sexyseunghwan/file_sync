@@ -34,6 +34,8 @@ async fn upload_handler(
     config_req_service: web::Data<Arc<ConfigRequestServicePub>>,
 ) -> Result<HttpResponse, Error> {
     
+    info!("Receive a file modification signal from the master server");
+
     /* 백업파일 경로 */
     let slave_backup_path = match config_req_service.get_slave_backup_path() {
         Ok(slave_backup_path) => slave_backup_path,

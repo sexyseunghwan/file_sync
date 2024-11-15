@@ -14,7 +14,6 @@ pub trait ConfigRequestService {
     fn get_slave_host(&self) -> Result<String, anyhow::Error>;
     fn get_master_address(&self) -> Result<Vec<String>, anyhow::Error>;
     fn get_slave_backup_path(&self) -> Result<String, anyhow::Error>; 
-    //slave_backup_path 
 
     async fn send_info_to_slave(&self, file_path: &str) -> Result<(), anyhow::Error>;
     async fn send_info_to_slave_io(&self, file_path: &str, file_name: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error>;
@@ -226,10 +225,10 @@ impl ConfigRequestService for ConfigRequestServicePub {
                             info!("File was sent successfully: {}", &url);
                             Ok(())
                         } else {
-                            Err(anyhow::anyhow!("[Error][send_info_to_slave_io()] Failed to send file: {}", resp.status()))
+                            Err(anyhow!("[Error][send_info_to_slave_io()] Failed to send file: {}", resp.status()))
                         }
                     },
-                    Err(e) => Err(anyhow::anyhow!("[Error][send_info_to_slave_io()] HTTP request failed: {}", e)),
+                    Err(e) => Err(anyhow!("[Error][send_info_to_slave_io()] HTTP request failed: {}", e)),
                 }
             })
         }).collect();
@@ -265,10 +264,10 @@ impl ConfigRequestService for ConfigRequestServicePub {
                             info!("File was sent successfully: {}", &url);
                             Ok(())
                         } else {
-                            Err(anyhow::anyhow!("[Error][send_info_to_slave_io()] Failed to send file: {}", resp.status()))
+                            Err(anyhow!("[Error][send_info_to_slave_io()] Failed to send file: {}", resp.status()))
                         }
                     },
-                    Err(e) => Err(anyhow::anyhow!("[Error][send_info_to_slave_io()] HTTP request failed: {}", e)),
+                    Err(e) => Err(anyhow!("[Error][send_info_to_slave_io()] HTTP request failed: {}", e)),
                 }
             })
         }).collect();
