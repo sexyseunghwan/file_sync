@@ -116,7 +116,7 @@ where
     fn poll_ready(&self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.service.poll_ready(cx)
     }
-
+    
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let client_ip = req.peer_addr().map(|addr| addr.ip().to_string()).unwrap_or_default();
 

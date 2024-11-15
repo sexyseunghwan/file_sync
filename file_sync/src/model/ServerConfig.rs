@@ -8,5 +8,6 @@ pub struct ServerConfig {
     pub slave_host: Option<String>,
     pub watch_path: String,
     pub specific_files: Vec<String>,
-    pub io_bound_improvement: bool
+    pub io_bound_improvement: bool,
+    pub slave_backup_path: Option<String>
 }

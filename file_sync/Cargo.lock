@@ -396,7 +396,9 @@ checksum = "a21f936df1771bf62b77f047b726c4625ff2e8aa607c01ec06e5a05bd8463401"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
+ "js-sys",
  "num-traits",
+ "wasm-bindgen",
  "windows-targets 0.52.6",
 ]
 
@@ -572,6 +574,7 @@ dependencies = [
  "actix-web",
  "anyhow",
  "async-trait",
+ "chrono",
  "derive-new",
  "dotenv",
  "flexi_logger",
@@ -586,7 +589,6 @@ dependencies = [
  "serde_json",
  "sha2",
  "tokio",
- "tokio-util",
  "toml",
 ]
 

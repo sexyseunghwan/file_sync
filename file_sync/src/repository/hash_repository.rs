@@ -25,7 +25,7 @@ pub fn initialize_hash_storage_clients() -> Arc<Mutex<HashStorage>> {
     let watch_path = config.server.watch_path.clone();
     //let hash_map_path = format!("{}hash_storage\\hash_value.json", watch_path);
     let hash_map_dir = format!("{}hash_storage", watch_path);
-    let hash_map_file_name = String::from("hash_value.json");
+    //let hash_map_file_name = String::from("hash_value.json");
     
 
     let hash_storage = match HashStorage::load(&hash_map_dir) {
@@ -67,7 +67,7 @@ impl HashStorage {
             .to_str()
             .ok_or_else(|| anyhow!("[Error][load()]The path cannot be converted into a string."))?;
         
-        let hash_storage: HashStorage = match serde_json::from_str(&contents) {
+        let mut hash_storage: HashStorage = match serde_json::from_str(&contents) {
             Ok(hashes) => hashes,
             Err(e) => {
                 warn!("[WARN][load()] No data exists in file 'hash map': {:?}", e);
@@ -75,6 +75,20 @@ impl HashStorage {
                 storage
             }
         };
+
+        println!("hash_map_dir1= {:?}", dir_path_str);
+        println!("hash_map_dir2= {:?}", hash_storage.dir_path);
+        
+        /* 
+            HashMap file 이 존재하는 경우 dir_path 파일이 기존이랑 다를 수 있음. 
+            그럴경우에는 dir_path 를 update 해줘야 함. 
+        */
+        if dir_path_str != hash_storage.dir_path {
+            hash_storage.dir_path = dir_path_str.to_string();
+            let contents = serde_json::to_string(&hash_storage)?;
+            fs::write(dir_path_str, contents)?;
+        }
+
         
         Ok(hash_storage)
     }

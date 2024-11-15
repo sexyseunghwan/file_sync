@@ -13,7 +13,8 @@ pub trait ConfigRequestService {
     fn get_watch_dir_info(&self) -> String;
     fn get_slave_host(&self) -> Result<String, anyhow::Error>;
     fn get_master_address(&self) -> Result<Vec<String>, anyhow::Error>;
-    
+    fn get_slave_backup_path(&self) -> Result<String, anyhow::Error>; 
+    //slave_backup_path 
 
     async fn send_info_to_slave(&self, file_path: &str) -> Result<(), anyhow::Error>;
     async fn send_info_to_slave_io(&self, file_path: &str, file_name: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error>;
@@ -57,7 +58,19 @@ impl ConfigRequestServicePub {
 #[async_trait]
 impl ConfigRequestService for ConfigRequestServicePub {
     
+    #[doc = "slave_backup_path 정보를 가져와주는 함수"]
+    fn get_slave_backup_path(&self) -> Result<String, anyhow::Error> {
 
+        let slave_backup_path = self
+            .config
+            .server
+            .slave_backup_path
+            .clone()
+            .ok_or_else(|| anyhow!("[Error][get_slave_backup_path()] There was a problem processing information 'slave_backup_path'."))?;
+
+        Ok(slave_backup_path)
+    }
+    
     #[doc = "master_address 정보를 가져와주는 함수"]
     fn get_master_address(&self) -> Result<Vec<String>, anyhow::Error> {
 
@@ -70,7 +83,7 @@ impl ConfigRequestService for ConfigRequestServicePub {
 
         Ok(master_address)
     }
-
+    
     #[doc = "slave_host 정보를 가져와주는 함수"]
     fn get_slave_host(&self) -> Result<String, anyhow::Error> {
         
@@ -155,6 +168,8 @@ impl ConfigRequestService for ConfigRequestServicePub {
     #[doc = "master 에서 파일이 변경되는 경우 해당 변경 정보를 slave 서버에 보내준다."]
     async fn send_info_to_slave(&self, file_path: &str) -> Result<(), anyhow::Error> {
         
+        println!("file_path= {:?}", file_path);
+
         let slave_url = self
             .config
             .server
