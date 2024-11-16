@@ -4,6 +4,8 @@ use crate::model::Configs::*;
 
 use crate::utils_modules::io_utils::*;
 
+use crate::repository::elastic_repository::*;
+
 
 #[async_trait]
 pub trait ConfigRequestService {
@@ -14,11 +16,13 @@ pub trait ConfigRequestService {
     fn get_slave_host(&self) -> Result<String, anyhow::Error>;
     fn get_master_address(&self) -> Result<Vec<String>, anyhow::Error>;
     fn get_slave_backup_path(&self) -> Result<String, anyhow::Error>; 
-
+    
     async fn send_info_to_slave(&self, file_path: &str) -> Result<(), anyhow::Error>;
     async fn send_info_to_slave_io(&self, file_path: &str, file_name: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error>;
     async fn send_info_to_slave_memory(&self, file_path: &str, file_name: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error>;
-    fn handle_async_function(&self, task_res: Vec<Result<Result<(), anyhow::Error>, task::JoinError>>) -> Result<(), anyhow::Error>;
+    fn handle_async_function(&self, task_res: Vec<Result<Result<(), anyhow::Error>, task::JoinError>>) -> Result<(), anyhow::Error>;  
+
+    async fn senf_msg_to_elastic<T: Serialize + Sync + Send>(&self, data: &T) -> Result<(), anyhow::Error>;
 }
 
 
@@ -57,6 +61,20 @@ impl ConfigRequestServicePub {
 #[async_trait]
 impl ConfigRequestService for ConfigRequestServicePub {
     
+
+    #[doc = ""]
+    async fn senf_msg_to_elastic<T: Serialize + Sync + Send>(&self, json_data: &T) -> Result<(), anyhow::Error> {
+
+        let es_conn = get_elastic_conn();
+        let data = serde_json::to_value(json_data)?;
+
+        //let index_name
+
+        es_conn.post_doc("test", data).await?;
+        
+        Ok(())
+    }
+
     #[doc = "slave_backup_path 정보를 가져와주는 함수"]
     fn get_slave_backup_path(&self) -> Result<String, anyhow::Error> {
 

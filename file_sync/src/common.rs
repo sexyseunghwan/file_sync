@@ -9,7 +9,8 @@ pub use std::{
     path::{ Path, PathBuf },
     fs::File,
     io::{ BufReader, Write, Read },
-    task::{ Context, Poll }
+    task::{ Context, Poll },
+    time::Duration,
 };
 
 pub use derive_new::new;
@@ -24,6 +25,7 @@ pub use tokio::{
     task
 }; 
 
+pub use getset::Getters;
 
 pub use serde::{
     Deserialize, 
@@ -80,7 +82,8 @@ pub use futures::{
     future::{
         Ready as FuterReady,
         ok
-    }
+    },
+    Future
 };
 
 
@@ -92,4 +95,23 @@ pub use chrono::{
     NaiveDateTime,
     DateTime,
     Utc
+};
+
+
+pub use elasticsearch::{
+    Elasticsearch, 
+    http::transport::{ SingleNodeConnectionPool, TransportBuilder },
+    http::Url,
+    http::response::Response,
+    SearchParts, 
+    IndexParts, 
+    DeleteParts,
+    http::transport::{ Transport, ConnectionPool }
+};
+
+
+pub use rand:: {
+    prelude::SliceRandom,
+    rngs::StdRng,
+    SeedableRng
 };

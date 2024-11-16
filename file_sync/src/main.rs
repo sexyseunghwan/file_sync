@@ -35,7 +35,7 @@ async fn main() {
     /* 종속 서비스 호출 */
     let config_req_service = Arc::new(ConfigRequestServicePub::new());
     let watch_service = Arc::new(WatchServicePub::new());   
-
+    
     /* 메인 컨트롤러 호출 */
     let main_controller = MainController::new(config_req_service, watch_service);
 

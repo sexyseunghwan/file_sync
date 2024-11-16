@@ -9,5 +9,8 @@ pub struct ServerConfig {
     pub watch_path: String,
     pub specific_files: Vec<String>,
     pub io_bound_improvement: bool,
-    pub slave_backup_path: Option<String>
+    pub slave_backup_path: Option<String>,
+    pub elastic_host: Option<Vec<String>>,
+    pub elastic_id: Option<String>,
+    pub elastic_pw: Option<String>
 }

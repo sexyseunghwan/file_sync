@@ -1,3 +1,12 @@
+/*
+Author      : Seunghwan Shin 
+Create date : 2024-11-00 
+Description : 검색엔진 자동 파일 동기화를 위한 프로그램
+    
+History     : 2024-11-00 Seunghwan Shin       # first create
+*/ 
+
+
 use crate::common::*;
 
 use crate::service::config_request_service::*;
