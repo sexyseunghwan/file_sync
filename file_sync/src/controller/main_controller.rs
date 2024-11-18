@@ -50,11 +50,11 @@ where
 
             role = server_config.server.role().to_string();
         }
-
+        
         
         if role == "master" {
             
-            let master_handler = MasterHandler::new(self.config_req_service.clone(), self.watch_service.clone());
+            let master_handler = MasterHandler::new(self.req_service.clone(), self.watch_service.clone());
             
             match master_handler.run().await {
                 Ok(_) => (),
@@ -65,7 +65,7 @@ where
         
         } else {
             
-            let slave_handler = SlaveHandler::new(self.config_req_service.clone(), self.watch_service.clone());
+            let slave_handler = SlaveHandler::new(self.req_service.clone(), self.watch_service.clone());
             
             match slave_handler.run().await {
                 Ok(_) => (),

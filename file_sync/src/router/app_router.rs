@@ -1,12 +1,15 @@
 use crate::common::*;
 
-use crate::model::ElasticMsg::ElasticMsg;
+use crate::model::ElasticMsg::*;
+
 use crate::utils_modules::io_utils::*;
 use crate::utils_modules::request_utils::*;
 
 use crate::model::FileInfo::*;
 
-use crate::service::config_request_service::*;
+use crate::configs::Configs::*;
+
+use crate::service::request_service::*;
 
 #[derive(Debug, new)]
 pub struct AppRouter;
@@ -50,13 +53,29 @@ async fn router_log_es_posting(from_host: &str, to_host: &str, file_name: &str, 
 async fn upload_handler(
     req: web::Query<FileInfo>,
     mut payload: web::Payload,
-    config_req_service: web::Data<Arc<ConfigRequestServicePub>>,
 ) -> Result<HttpResponse, Error> {
     
     info!("Receive a file modification signal from the master server");
+    
+    let slave_backup_path;
+    {
+        let server_config = match get_config_read() {
+            Ok(server_config) => server_config,
+            Err(e) => {
+                return Err(actix_web::error::ErrorInternalServerError(e.to_string()))
+            }
+        };
+
+        let test = match server_config
+            .server
+            .slave_backup_path() {
+                Some(test) => test,
+                None
+            } 
+    }
 
     /* 백업파일 경로 */
-    let slave_backup_path = match config_req_service.get_slave_backup_path() {
+    let slave_backup_path = match req_service.get_slave_backup_path() {
         Ok(slave_backup_path) => slave_backup_path,
         Err(e) => {
             error!("[Error][upload_handler()] {:?}", e);
@@ -68,7 +87,7 @@ async fn upload_handler(
     let file_name = req.filename.clone(); 
     
     /* 감시대상 파일 경로 */
-    let watch_path_string = config_req_service.get_watch_dir_info();
+    let watch_path_string = req_service.get_watch_dir_info();
     let watch_path = Path::new(watch_path_string.as_str());
     let watch_file_path: PathBuf = watch_path.join( &file_name); 
     
@@ -99,7 +118,7 @@ async fn upload_handler(
     info!("The file '{:?}' has been changed.", watch_path);
 
     /* 아래의 코드는 해당 파일 복사 관련 로그를 Elasticsearch 에 로깅해주기 위한 코드이다. */
-    let from_host = config_req_service.get_host_info();
+    let from_host = req_service.get_host_info();
     
     let _es_post_res = match router_log_es_posting(
         &from_host, 

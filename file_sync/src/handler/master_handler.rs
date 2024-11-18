@@ -4,6 +4,8 @@ use crate::common::*;
 use crate::service::request_service::*;
 use crate::service::watch_service::*;
 
+use crate::configs::Configs::*;
+
 #[derive(Debug)]
 pub struct MasterHandler<R,W>
 where 
@@ -21,7 +23,7 @@ where
     W: WatchService + Sync + Send + 'static
 {
 
-    pub fn new(config_req_service: Arc<R>, watch_service: Arc<W>) -> Self {
+    pub fn new(req_service: Arc<R>, watch_service: Arc<W>) -> Self {
         Self {
             req_service,
             watch_service,
@@ -31,12 +33,17 @@ where
     
     #[doc = "프로그램 role 이 master 인경우의 작업"]
     pub async fn run(&self) -> Result<(), anyhow::Error> {
-
-        let mut hotwatch = Hotwatch::new()?;
         
         /* 감시할 파일 리스트 */
-        let slave_address_vec = self.config_req_service.get_watch_file_list();
-        
+        let slave_address_vec; //= self.config_req_service.get_watch_file_list();
+        {
+            let server_config = get_config_read()?;
+            slave_address_vec = server_config.server.get_watch_file_list();
+        }
+
+
+        let mut hotwatch = Hotwatch::new()?;
+
         /* 해당 파일을 계속 감시해준다. */
         let (tx, rx) = channel::<Result<String, String>>();
         
@@ -91,7 +98,7 @@ where
                     /* 변경 파일이 있는 경우 -> slave 파일에 변경 파일을 보내준다. */
                     if watch_res {
 
-                        match self.config_req_service.send_info_to_slave(&file_name).await {
+                        match self.req_service.send_info_to_slave(&file_name).await {
                             Ok(_) => {
                                 info!("Successfully sent files to slave servers. : {}", &file_name);
                                 ()
