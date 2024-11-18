@@ -10,25 +10,25 @@ use crate::middleware::middle_ware::*;
 use crate::router::app_router::*;
 
 #[derive(Debug)]
-pub struct SlaveHandler<C,W>
+pub struct SlaveHandler<R,W>
 where 
-    C: ConfigRequestService + Sync + Send + 'static,
+    R: RequestService + Sync + Send + 'static,
     W: WatchService + Sync + Send + 'static,
 {
-    config_req_service: Arc<C>,
+    req_service: Arc<R>,
     watch_service: Arc<W>
 }
 
 
-impl<C,W> SlaveHandler<C,W> 
+impl<R,W> SlaveHandler<R,W> 
 where
-    C: ConfigRequestService + Sync + Send + 'static,
+    R: RequestService + Sync + Send + 'static,
     W: WatchService + Sync + Send + 'static
 {
     
-    pub fn new(config_req_service: Arc<C>, watch_service: Arc<W>) -> Self {
+    pub fn new(req_service: Arc<R>, watch_service: Arc<W>) -> Self {
         Self {
-            config_req_service,
+            req_service,
             watch_service,
         }
     }
