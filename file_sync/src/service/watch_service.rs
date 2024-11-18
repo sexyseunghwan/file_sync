@@ -45,7 +45,6 @@ impl WatchService for WatchServicePub {
             storage_hash.update_hash(file_path_slice.to_string(), event_hash_val);
             storage_hash.save()?;
             
-            //println!("The '{}' file has been modified.", file_path_slice);
             info!("The '{}' file has been modified.", file_path_slice);
             Ok(true) /* 변경 표시 */
         } else {

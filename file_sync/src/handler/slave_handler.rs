@@ -1,6 +1,8 @@
 use crate::common::*;
 
-use crate::service::config_request_service::*;
+use crate::router::app_router;
+//use crate::service::config_request_service::*;
+use crate::service::request_service::*;
 use crate::service::watch_service::*;
 
 use crate::middleware::middle_ware::*;
@@ -38,7 +40,7 @@ where
         let config_req_service = self.config_req_service.clone();
         let watch_service = self.watch_service.clone();
 
-        let slave_host = self.config_req_service.get_slave_host()?;
+        let slave_host = self.config_req_service.get_host_info();
         let master_address = self.config_req_service.get_master_address()?;
         
         HttpServer::new(move || {

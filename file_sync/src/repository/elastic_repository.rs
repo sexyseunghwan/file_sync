@@ -2,7 +2,6 @@ use crate::common::*;
 
 use crate::utils_modules::io_utils::*;
 
-//use crate::model::ClusterJson::*;
 use crate::model::Configs::*;
 
 
@@ -15,7 +14,7 @@ static ELASTICSEARCH_CLIENT: once_lazy<Arc<EsRepositoryPub>> = once_lazy::new(||
 #[doc = "Function to initialize Elasticsearch connection instances"]
 pub fn initialize_elastic_clients() -> Arc<EsRepositoryPub> {
     
-    let config: Configs = match read_toml_from_file::<Configs>("./Config.toml") {
+    let config: Configs = match read_toml_from_file::<Configs>("./config/Config.toml") {
         Ok(config) => config,
         Err(e) => {
             error!("[Error][initialize_elastic_clients() -> new()]{:?}", e);
@@ -23,10 +22,21 @@ pub fn initialize_elastic_clients() -> Arc<EsRepositoryPub> {
         }
     };
     
-    let elastic_host = config.server.elastic_host.unwrap();
-    let elastic_id = config.server.elastic_id.unwrap();
-    let elastic_pw = config.server.elastic_pw.unwrap();
+    let elastic_host = config.server.elastic_host.unwrap_or_else(|| {
+        error!("[Error][initialize_elastic_clients()] Value 'elastic_host' not found.");
+        panic!("[Error][initialize_elastic_clients()] Value 'elastic_host' not found.")
+    });
+    
+    let elastic_id = config.server.elastic_id.unwrap_or_else(|| {
+        error!("[Error][initialize_elastic_clients()] Value 'elastic_id' not found.");
+        panic!("[Error][initialize_elastic_clients()] Value 'elastic_id' not found.")
+    });
 
+    let elastic_pw = config.server.elastic_pw.unwrap_or_else(|| {
+        error!("[Error][initialize_elastic_clients()] Value 'elastic_pw' not found.");
+        panic!("[Error][initialize_elastic_clients()] Value 'elastic_pw' not found.")
+    });
+    
     let es_helper = match EsRepositoryPub::new(
         elastic_host, 
         &elastic_id, 

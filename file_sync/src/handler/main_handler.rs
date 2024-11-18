@@ -9,7 +9,8 @@ History     : 2024-11-00 Seunghwan Shin       # first create
 
 use crate::common::*;
 
-use crate::service::config_request_service::*;
+//use crate::service::config_request_service::*;
+use crate::service::request_service::*;
 use crate::service::watch_service::*;
 
 use crate::middleware::middle_ware::*;
@@ -19,24 +20,24 @@ use crate::router::app_router::*;
 
 
 #[derive(Debug)]
-pub struct MainHandler<C,W>
+pub struct MainHandler<R,W>
 where 
-    C: ConfigRequestService + Sync + Send + 'static,
+    R: RequestService + Sync + Send + 'static,
     W: WatchService + Sync + Send + 'static,
 {
-    config_req_service: Arc<C>,
+    req_service: Arc<R>,
     watch_service: Arc<W>
 }
 
 
-impl<C,W> MainHandler<C,W> 
+impl<R,W> MainHandler<R,W> 
 where
-    C: ConfigRequestService + Sync + Send + 'static,
+    R: RequestService + Sync + Send + 'static,
     W: WatchService + Sync + Send + 'static
 {
     
-    pub fn new(config_req_service: Arc<C>, watch_service: Arc<W>) -> Self {
-        Self { config_req_service, watch_service }
+    pub fn new(req_service: Arc<R>, watch_service: Arc<W>) -> Self {
+        Self { req_service, watch_service }
     }
     
     #[doc = "해당 프로그램이 master role 인지 slave role 인지 정해준다."]
@@ -161,7 +162,7 @@ where
         let config_req_service = self.config_req_service.clone();
         let watch_service = self.watch_service.clone();
 
-        let slave_host = self.config_req_service.get_slave_host()?;
+        let slave_host = self.config_req_service.get_host_info();
         let master_address = self.config_req_service.get_master_address()?;
         
         HttpServer::new(move || {

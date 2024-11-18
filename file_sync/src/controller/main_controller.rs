@@ -1,38 +1,57 @@
+use core::panic;
+
+use tokio::sync::oneshot::error;
+
 use crate::common::*;
 
-use crate::service::config_request_service::*;
+//use crate::service::config_request_service::*;
+use crate::service::request_service::*;
 use crate::service::watch_service::*;
 
 use crate::handler::master_handler::*;
 use crate::handler::slave_handler::*;
 
+use crate::configs::Configs::*;
+
 
 #[derive(Debug)]
-pub struct MainController<C, W>
+pub struct MainController<R, W>
 where
-    C: ConfigRequestService + Sync + Send + 'static,
+    R: RequestService + Sync + Send + 'static,
     W: WatchService + Sync + Send + 'static,
 {
-    config_req_service: Arc<C>,
+    req_service: Arc<R>,
     watch_service: Arc<W>,
 }
 
 
-impl<C, W> MainController<C, W>
+impl<R, W> MainController<R, W>
 where
-    C: ConfigRequestService  + Sync + Send + 'static,
+    R: RequestService  + Sync + Send + 'static,
     W: WatchService  + Sync + Send + 'static,
 {
-    pub fn new(config_req_service: Arc<C>, watch_service: Arc<W>) -> Self {
-        Self { config_req_service, watch_service }
+    pub fn new(req_service: Arc<R>, watch_service: Arc<W>) -> Self {
+        Self { req_service, watch_service }
     }   
     
     
     #[doc = "메인 테스크"]
     pub async fn task_main(&self) {
 
-        let role = self.config_req_service.get_role();
+        let role;
+        {
+            let server_config = match get_config_read() {
+                Ok(server_config) => server_config,
+                Err(e) => {
+                    error!("[Error][task_main()] {:?}", e);
+                    panic!("{:?}", e)
+                }
+            };
 
+            role = server_config.server.role().to_string();
+        }
+
+        
         if role == "master" {
             
             let master_handler = MasterHandler::new(self.config_req_service.clone(), self.watch_service.clone());

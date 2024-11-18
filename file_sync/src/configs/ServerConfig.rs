@@ -1,6 +1,7 @@
 use crate::common::*;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Getters)]
+#[getset(get = "pub", set = "pub")]
 pub struct ServerConfig {
     pub role: String,
     pub host: String,

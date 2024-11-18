@@ -1,6 +1,7 @@
 use crate::common::*;
 
-use crate::service::config_request_service::*;
+//use crate::service::config_request_service::*;
+use crate::service::request_service::*;
 use crate::service::watch_service::*;
 
 #[derive(Debug)]
@@ -90,7 +91,6 @@ where
                     /* 변경 파일이 있는 경우 -> slave 파일에 변경 파일을 보내준다. */
                     if watch_res {
 
-                        println!("hello2");
                         match self.config_req_service.send_info_to_slave(&file_name).await {
                             Ok(_) => {
                                 info!("Successfully sent files to slave servers. : {}", &file_name);

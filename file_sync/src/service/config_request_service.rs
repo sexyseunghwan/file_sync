@@ -3,56 +3,48 @@ use crate::common::*;
 use crate::model::Configs::*;
 
 use crate::utils_modules::io_utils::*;
-
-use crate::repository::elastic_repository::*;
+use crate::utils_modules::request_utils::*;
 
 
 #[async_trait]
 pub trait ConfigRequestService {
+    
+    /* Config 부분 */
     fn get_role(&self) -> String;
-    fn get_slave_address(&self) -> Result<Vec<String>, anyhow::Error>;
     fn get_watch_file_list(&self) -> Vec<String>;
     fn get_watch_dir_info(&self) -> String;
-    fn get_slave_host(&self) -> Result<String, anyhow::Error>;
+    fn get_host_info(&self) -> String;
     fn get_master_address(&self) -> Result<Vec<String>, anyhow::Error>;
     fn get_slave_backup_path(&self) -> Result<String, anyhow::Error>; 
     
+    /* Request 부분 */
     async fn send_info_to_slave(&self, file_path: &str) -> Result<(), anyhow::Error>;
     async fn send_info_to_slave_io(&self, file_path: &str, file_name: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error>;
     async fn send_info_to_slave_memory(&self, file_path: &str, file_name: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error>;
-    fn handle_async_function(&self, task_res: Vec<Result<Result<(), anyhow::Error>, task::JoinError>>) -> Result<(), anyhow::Error>;  
-
-    async fn senf_msg_to_elastic<T: Serialize + Sync + Send>(&self, data: &T) -> Result<(), anyhow::Error>;
+    fn handle_async_function(&self, task_res: Vec<Result<Result<(), anyhow::Error>, task::JoinError>>) -> Result<(), anyhow::Error>;
 }
 
 
 #[derive(Debug)]
 pub struct ConfigRequestServicePub {
-    pub config: Configs,
-    pub client: Client
-}
-
-
-#[derive(Debug, Deserialize, Serialize, new)]
-pub struct RequestReturnMessage {
-    pub err_flag: bool,
-    pub err_msg: String
+    pub config: Configs,        
+    pub client: Arc<Client>     
 }
 
 
 impl ConfigRequestServicePub {
     
-    pub fn new() -> Self {
-
-        let config: Configs = match read_toml_from_file::<Configs>("./Config.toml") {
+    pub fn new() -> Self {  
+        
+        let config: Configs = match read_toml_from_file::<Configs>("./config/Config.toml") {
             Ok(config) => config,
             Err(e) => {
-                error!("[Error][WatchServicePub->new()]{:?}", e);
+                error!("[Error][WatchServicePub->new() ???]{:?}", e);
                 panic!("{:?}", e)
             }
         };
         
-        let client = Client::new();
+        let client = Arc::new(Client::new());
 
         Self { config, client }
     }    
@@ -61,20 +53,7 @@ impl ConfigRequestServicePub {
 #[async_trait]
 impl ConfigRequestService for ConfigRequestServicePub {
     
-
-    #[doc = ""]
-    async fn senf_msg_to_elastic<T: Serialize + Sync + Send>(&self, json_data: &T) -> Result<(), anyhow::Error> {
-
-        let es_conn = get_elastic_conn();
-        let data = serde_json::to_value(json_data)?;
-
-        //let index_name
-
-        es_conn.post_doc("test", data).await?;
-        
-        Ok(())
-    }
-
+    
     #[doc = "slave_backup_path 정보를 가져와주는 함수"]
     fn get_slave_backup_path(&self) -> Result<String, anyhow::Error> {
 
@@ -101,44 +80,29 @@ impl ConfigRequestService for ConfigRequestServicePub {
         Ok(master_address)
     }
     
-    #[doc = "slave_host 정보를 가져와주는 함수"]
-    fn get_slave_host(&self) -> Result<String, anyhow::Error> {
+    #[doc = "프로그램을 동작 주체가 되는 host 정보를 가져와주는 함수"]
+    fn get_host_info(&self) -> String {
         
         let slave_host = self
             .config
             .server
-            .slave_host
-            .clone()
-            .ok_or_else(|| anyhow!("[Error][get_slave_host()] There was a problem processing information 'slave_host'."))?;
+            .host
+            .clone();
         
-        Ok(slave_host)
+        slave_host
     }   
     
     #[doc = "감시대상 디렉토리 경로를 반환해주는 함수"]
     fn get_watch_dir_info(&self) -> String {
         self.config.server.watch_path.clone()
     }
-
+    
 
     #[doc = "해당 프로그램의 역할을 조회해주는 함수"]
     fn get_role(&self) -> String {
         self.config.server.role.clone()
     }
     
-    
-    #[doc = "slave_address 정보를 반환하는 함수"]
-    fn get_slave_address(&self) -> Result<Vec<String>, anyhow::Error> {
-
-        let slave_address_vec = match self.config.server.slave_address.clone() {
-            Some(slave_address_vec) => slave_address_vec,
-            None => {
-                return Err(anyhow!("[Error][get_slave_address()] "));
-            }
-        };
-
-        Ok(slave_address_vec)
-    }
-
 
     #[doc = "감시하는 파일 리스트를 반환해주는 함수"]
     fn get_watch_file_list(&self) -> Vec<String> {
@@ -161,7 +125,7 @@ impl ConfigRequestService for ConfigRequestServicePub {
 
         for result in task_res {
             match result {
-                Ok(Ok(())) => continue,  // Success path
+                Ok(Ok(())) => continue,  // Success
                 Ok(Err(e)) => {
                     error!("Task failed with error: {}", e);
                     all_good = false;
@@ -173,36 +137,32 @@ impl ConfigRequestService for ConfigRequestServicePub {
                 }
             }
         }
-
+        
         if all_good {
             Ok(())
         } else {
             Err(anyhow::anyhow!("Some tasks failed"))
         }
-
     }
 
-    #[doc = "master 에서 파일이 변경되는 경우 해당 변경 정보를 slave 서버에 보내준다."]
+
+    #[doc = "master server 에서 파일이 변경되는 경우 해당 변경 정보를 slave server에 공유해준다."]
     async fn send_info_to_slave(&self, file_path: &str) -> Result<(), anyhow::Error> {
         
-        println!("file_path= {:?}", file_path);
-
         let slave_url = self
             .config
             .server
             .slave_address
             .as_ref()
             .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] 'slave_url' not found."))?;
-
-        println!("send_info_to_slave= {:?}", slave_url);
-
+        
         let path = Path::new(file_path);
         let file_name = path.file_name()
             .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] The file name is not valid."))?
             .to_str()
             .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] There was a problem converting the file name to a string."))?;
-
         
+        /* i/o 를 효율화 할지 메므리를 효율화 할지 정해주는 변수 */
         let io_improvement_option = self.config.server.io_bound_improvement;
         
         if io_improvement_option {
@@ -215,82 +175,56 @@ impl ConfigRequestService for ConfigRequestServicePub {
     }
     
     
-    #[doc = "i/o 바운드 효율코드"]
+    #[doc = "i/o bound 효율코드"]
     async fn send_info_to_slave_io(&self, file_path: &str, file_name: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error> {
-
-        let file_data = tokio::fs::read(file_path).await?;
         
-        let tasks: Vec<_> = slave_url.into_iter().map(|url| {
-            
-            let client = self.client.clone();
+        let file_data = tokio::fs::read(&file_path).await?;
+        let from_host: String = self.get_host_info();
+        
+        let tasks: Vec<_> = slave_url.into_iter().map(|url: String| {
+                
+            let client  = self.client.clone();
             let data_clone = file_data.clone();
             let parsing_url = format!("http://{}/upload?filename={}", url, file_name);
-
-            println!("parsing_url=  {:?}",parsing_url);
+            let file_path = file_path.to_string().clone();  
+            let from_host_clone = from_host.clone();
 
             task::spawn(async move {
-                
-                let body = Body::from(data_clone);
-                let response = client.post(&parsing_url)
-                    .header("Content-Type", "multipart/form-data")
-                    .body(body)
-                    .send()
-                    .await;
-                
-                match response {
-                    Ok(resp) => {
-                        if resp.status().is_success() {
-                            info!("File was sent successfully: {}", &url);
-                            Ok(())
-                        } else {
-                            Err(anyhow!("[Error][send_info_to_slave_io()] Failed to send file: {}", resp.status()))
-                        }
-                    },
-                    Err(e) => Err(anyhow!("[Error][send_info_to_slave_io()] HTTP request failed: {}", e)),
-                }
+                let from_host_move_clone = from_host_clone.clone();
+                send_file_to_url(&client, &parsing_url, &data_clone, &file_path, &from_host_move_clone, &url).await
             })
-        }).collect();
 
+        }).collect();
+        
         let results: Vec<Result<Result<(), anyhow::Error>, task::JoinError>> = join_all(tasks).await;
         self.handle_async_function(results)
-
+        
     }
     
 
     #[doc = "메모리 효율코드"]
     async fn send_info_to_slave_memory(&self, file_path: &str, file_name: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error> {
         
+        let from_host: String = self.get_host_info();
+
         let tasks: Vec<_> = slave_url.into_iter().map(|url| {
                 
             let client = self.client.clone();
             let parsing_url = format!("http://{}/upload?filename={}", url, file_name);
             let file_path = file_path.to_string().clone();
+            let from_host_clone = from_host.clone();
 
             task::spawn(async move {
-                
-                let file_data = tokio::fs::read(file_path).await?;
-                let body = Body::from(file_data);
-                let response = client.post(&parsing_url)
-                    .header("Content-Type", "multipart/form-data")
-                    .body(body)
-                    .send()
-                    .await;
-                
-                match response {
-                    Ok(resp) => {
-                        if resp.status().is_success() {
-                            info!("File was sent successfully: {}", &url);
-                            Ok(())
-                        } else {
-                            Err(anyhow!("[Error][send_info_to_slave_io()] Failed to send file: {}", resp.status()))
-                        }
-                    },
-                    Err(e) => Err(anyhow!("[Error][send_info_to_slave_io()] HTTP request failed: {}", e)),
-                }
+                let file_data = tokio::fs::read(&file_path).await?;
+                let from_host_move_clone = from_host_clone.clone();
+                send_file_to_url(&client, &parsing_url, &file_data, &file_path, &from_host_move_clone, &url).await
             })
+
         }).collect();
 
         let results: Vec<Result<Result<(), anyhow::Error>, task::JoinError>> = join_all(tasks).await;
         self.handle_async_function(results)
     }
 }
+
+

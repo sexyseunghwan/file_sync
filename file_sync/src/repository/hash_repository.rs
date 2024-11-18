@@ -14,7 +14,7 @@ static HASH_STORAGE_CLIENT: once_lazy<Arc<Mutex<HashStorage>>> = once_lazy::new(
 #[doc = "Hash Storage 를 초기화해주는 함수"]
 pub fn initialize_hash_storage_clients() -> Arc<Mutex<HashStorage>> {
 
-    let config: Configs = match read_toml_from_file::<Configs>("./Config.toml") {
+    let config: Configs = match read_toml_from_file::<Configs>("./config/Config.toml") {
         Ok(config) => config,
         Err(e) => {
             error!("[Error][WatchServicePub->new()] {:?}", e);

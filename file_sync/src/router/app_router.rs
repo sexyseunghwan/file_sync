@@ -1,11 +1,14 @@
 use crate::common::*;
 
+use crate::model::ElasticMsg::ElasticMsg;
 use crate::utils_modules::io_utils::*;
+use crate::utils_modules::request_utils::*;
 
 use crate::model::FileInfo::*;
 
 use crate::service::config_request_service::*;
 
+#[derive(Debug, new)]
 pub struct AppRouter;
 
 impl AppRouter {
@@ -17,13 +20,29 @@ impl AppRouter {
             web::resource("/upload")
                 .route(web::post().to(upload_handler))
         );
-
+        
         /* 새 라우트 추가는 아래와 같이 수행하면 된다. */
         // cfg.service(
         //     web::resource("/info")
         //         .route(web::get().to(get_info_handler))  /* 새 라우트 추가 */ 
         // );
     }
+}
+
+
+#[doc = ""]
+async fn router_log_es_posting(from_host: &str, to_host: &str, file_name: &str, task_status: &str, task_detail: &str) -> Result<(), anyhow::Error> {
+
+    let es_msg = ElasticMsg::new(
+        from_host, 
+        to_host, 
+        file_name, 
+        task_status, 
+        task_detail)?;
+    
+    send_task_message_to_elastic(es_msg).await?;
+
+    Ok(())
 }
 
 
@@ -40,7 +59,7 @@ async fn upload_handler(
     let slave_backup_path = match config_req_service.get_slave_backup_path() {
         Ok(slave_backup_path) => slave_backup_path,
         Err(e) => {
-            error!("{:?}", e);
+            error!("[Error][upload_handler()] {:?}", e);
             return Err(actix_web::error::ErrorInternalServerError(e.to_string()))
         }
     };
@@ -52,13 +71,12 @@ async fn upload_handler(
     let watch_path_string = config_req_service.get_watch_dir_info();
     let watch_path = Path::new(watch_path_string.as_str());
     let watch_file_path: PathBuf = watch_path.join( &file_name); 
-
     
     /* 파일 백업 시작 */
     let _backup_res = match copy_file_for_backup(watch_file_path.clone(), &slave_backup_path) {
         Ok(_) => (),
         Err(e) => {
-            error!("{:?}", e);
+            error!("[Error][upload_handler()] {:?}", e);
             return Err(actix_web::error::ErrorInternalServerError(e))
         }
     };
@@ -67,7 +85,7 @@ async fn upload_handler(
     let mut chg_file = match File::create(watch_file_path) {
         Ok(chg_file) => chg_file,
         Err(e) => {
-            error!("[Error][upload()] {:?}", e);
+            error!("[Error][upload_handler()] {:?}", e);
             return Err(actix_web::error::ErrorInternalServerError(e))
         }
     };
@@ -79,6 +97,25 @@ async fn upload_handler(
     }
     
     info!("The file '{:?}' has been changed.", watch_path);
+
+    /* 아래의 코드는 해당 파일 복사 관련 로그를 Elasticsearch 에 로깅해주기 위한 코드이다. */
+    let from_host = config_req_service.get_host_info();
+    
+    let _es_post_res = match router_log_es_posting(
+        &from_host, 
+        "", 
+        &file_name, 
+        "success", 
+        "slave task" ).await {
+            Ok(_) => (),
+            Err(e) => {
+                error!("{:?}", e);
+                return Err(actix_web::error::ErrorInternalServerError(e))
+            }
+    };
     
     Ok(HttpResponse::Ok().body("File uploaded successfully"))
 }
+
+
+
