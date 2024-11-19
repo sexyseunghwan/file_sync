@@ -50,6 +50,12 @@ async fn router_log_es_posting(from_host: &str, to_host: &str, file_name: &str, 
 
 
 #[doc = "파일 업로드 핸들러 - master 쪽에서 수정된 파일을 넘겨주는데 해당 정보를 가지고 slave 의 파일을 최신화 해주는 함수"]
+/// # Arguments
+/// * `req`     - Request 객체 Http 통신을 통해서 넘어온 쿼리의 결과.
+/// * `payload` - 파일 데이터 스트림을 청크방식으로 보내줌. -> 즉 파일 데이터.
+/// 
+/// # Returns
+/// * Result<HttpResponse, Error> - 
 async fn upload_handler(
     req: web::Query<FileInfo>,
     mut payload: web::Payload,
@@ -57,51 +63,57 @@ async fn upload_handler(
     
     info!("Receive a file modification signal from the master server");
     
-    let slave_backup_path;
+    let slave_backup_path;  /* 백업파일 경로 */
+    let watch_path_string;  /* 감시대상 파일 경로 */
+    let from_host;          /* 호스트 정보 */            
     {
         let server_config = match get_config_read() {
             Ok(server_config) => server_config,
             Err(e) => {
+                error!("[Error][upload_handler()] {:?}", e);
                 return Err(actix_web::error::ErrorInternalServerError(e.to_string()))
             }
         };
-
-        let test = match server_config
+        
+        watch_path_string = server_config
             .server
-            .slave_backup_path() {
-                Some(test) => test,
-                None
-            } 
+            .watch_path()
+            .clone();
+
+        slave_backup_path = server_config
+            .server
+            .slave_backup_path()
+            .clone()
+            .unwrap_or(String::new());
+
+        from_host = server_config
+            .server
+            .host()
+            .clone();
     }
-
-    /* 백업파일 경로 */
-    let slave_backup_path = match req_service.get_slave_backup_path() {
-        Ok(slave_backup_path) => slave_backup_path,
-        Err(e) => {
-            error!("[Error][upload_handler()] {:?}", e);
-            return Err(actix_web::error::ErrorInternalServerError(e.to_string()))
-        }
-    };
-
+    
+    
     /* 수정된 파일의 이름 */
-    let file_name = req.filename.clone(); 
+    let modified_file_name = req.filename.clone(); 
     
     /* 감시대상 파일 경로 */
-    let watch_path_string = req_service.get_watch_dir_info();
     let watch_path = Path::new(watch_path_string.as_str());
-    let watch_file_path: PathBuf = watch_path.join( &file_name); 
-    
+
+    /* 수정된 파일 실제 경로 */
+    let modified_file_path: PathBuf = watch_path.join( &modified_file_name); 
+     
+     
     /* 파일 백업 시작 */
-    let _backup_res = match copy_file_for_backup(watch_file_path.clone(), &slave_backup_path) {
+    let _backup_res = match copy_file_for_backup(modified_file_path.clone(), &slave_backup_path) {
         Ok(_) => (),
         Err(e) => {
-            error!("[Error][upload_handler()] {:?}", e);
+            error!("[Error][upload_handler()] File backup Failed : {:?}", e);
             return Err(actix_web::error::ErrorInternalServerError(e))
         }
     };
     
     /* 전송된 파일로 기존 파일 덮어쓰기 */
-    let mut chg_file = match File::create(watch_file_path) {
+    let mut chg_file = match File::create(modified_file_path) {
         Ok(chg_file) => chg_file,
         Err(e) => {
             error!("[Error][upload_handler()] {:?}", e);
@@ -117,15 +129,13 @@ async fn upload_handler(
     
     info!("The file '{:?}' has been changed.", watch_path);
 
-    /* 아래의 코드는 해당 파일 복사 관련 로그를 Elasticsearch 에 로깅해주기 위한 코드이다. */
-    let from_host = req_service.get_host_info();
-    
+    /* 아래의 코드는 해당 파일 복사 관련 로그를 Elasticsearch 에 로깅해주기 위한 코드. */ 
     let _es_post_res = match router_log_es_posting(
         &from_host, 
         "", 
-        &file_name, 
+        &modified_file_name, 
         "success", 
-        "slave task" ).await {
+        "[slave task] Overwrite files" ).await {
             Ok(_) => (),
             Err(e) => {
                 error!("{:?}", e);

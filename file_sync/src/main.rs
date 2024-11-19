@@ -1,3 +1,12 @@
+
+/*
+Author      : Seunghwan Shin 
+Create date : 2024-11-19 
+Description : Elasticsearch 중앙 집중식 사전 관리 시스템
+    
+History     : 2024-11-19 Seunghwan Shin       # [v.1.0.0] first create
+*/
+
 mod common;
 use crate::common::*;
 
@@ -26,7 +35,7 @@ mod configs;
 
 #[tokio::main]
 async fn main() {
-
+    
     /* 로깅 시작 */
     set_global_logger();
     info!("File Sync Program Start");

@@ -1,10 +1,5 @@
-use core::panic;
-
-use tokio::sync::oneshot::error;
-
 use crate::common::*;
 
-//use crate::service::config_request_service::*;
 use crate::service::request_service::*;
 use crate::service::watch_service::*;
 
@@ -51,10 +46,13 @@ where
             role = server_config.server.role().to_string();
         }
         
-        
+        /* System role 이 master 인 경우 */
         if role == "master" {
             
-            let master_handler = MasterHandler::new(self.req_service.clone(), self.watch_service.clone());
+            let master_handler = MasterHandler::new(
+                self.req_service.clone(), 
+                self.watch_service.clone()
+            );
             
             match master_handler.run().await {
                 Ok(_) => (),
@@ -64,8 +62,12 @@ where
             }
         
         } else {
-            
-            let slave_handler = SlaveHandler::new(self.req_service.clone(), self.watch_service.clone());
+        /* System role 이 slave 인 경우 */
+        
+            let slave_handler = SlaveHandler::new(
+                self.req_service.clone(), 
+                self.watch_service.clone()
+            );
             
             match slave_handler.run().await {
                 Ok(_) => (),
@@ -73,9 +75,6 @@ where
                     error!("{:?}", e);
                 }
             }
-        
         }
-
     }
-    
 }

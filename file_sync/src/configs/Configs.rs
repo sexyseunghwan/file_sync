@@ -16,7 +16,7 @@ pub fn initialize_server_configs() -> Arc<RwLock<Configs>> {
     let config: Configs = match read_toml_from_file::<Configs>("./config/Config.toml") {
         Ok(config) => config,
         Err(e) => {
-            error!("[Error][WatchServicePub->new() ???]{:?}", e);
+            error!("[Error][WatchServicePub->new()] The config file could not be found. : {:?}", e);
             panic!("{:?}", e)
         }
     };

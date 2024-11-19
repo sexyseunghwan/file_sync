@@ -1,8 +1,8 @@
 use crate::common::*;
 
-use crate::model::Configs::*;
-
 use crate::utils_modules::io_utils::*;
+
+use crate::configs::Configs::*;
 
 
 #[doc = "Hash Storage를 전역적으로 사용하기 위함."]
@@ -13,16 +13,21 @@ static HASH_STORAGE_CLIENT: once_lazy<Arc<Mutex<HashStorage>>> = once_lazy::new(
 
 #[doc = "Hash Storage 를 초기화해주는 함수"]
 pub fn initialize_hash_storage_clients() -> Arc<Mutex<HashStorage>> {
-
-    let config: Configs = match read_toml_from_file::<Configs>("./config/Config.toml") {
-        Ok(config) => config,
-        Err(e) => {
-            error!("[Error][WatchServicePub->new()] {:?}", e);
-            panic!("{:?}", e)
-        }
-    };
     
-    let watch_path = config.server.watch_path.clone();
+    let watch_path;
+    {
+        let server_config: RwLockReadGuard<'_, Configs> = match get_config_read() {
+            Ok(server_config) => server_config,
+            Err(e) => {
+                error!("[Error][initialize_hash_storage_clients()] {:?}", e);
+                panic!("{:?}", e)
+            }
+        };
+
+        watch_path = server_config.server.watch_path().clone();
+    }
+
+
     //let hash_map_path = format!("{}hash_storage\\hash_value.json", watch_path);
     let hash_map_dir = format!("{}hash_storage", watch_path);
     //let hash_map_file_name = String::from("hash_value.json");
@@ -75,9 +80,6 @@ impl HashStorage {
                 storage
             }
         };
-
-        println!("hash_map_dir1= {:?}", dir_path_str);
-        println!("hash_map_dir2= {:?}", hash_storage.dir_path);
         
         /* 
             HashMap file 이 존재하는 경우 dir_path 파일이 기존이랑 다를 수 있음. 
@@ -88,7 +90,6 @@ impl HashStorage {
             let contents = serde_json::to_string(&hash_storage)?;
             fs::write(dir_path_str, contents)?;
         }
-
         
         Ok(hash_storage)
     }

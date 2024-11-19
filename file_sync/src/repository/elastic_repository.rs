@@ -2,7 +2,7 @@ use crate::common::*;
 
 use crate::utils_modules::io_utils::*;
 
-use crate::model::Configs::*;
+use crate::configs::Configs::*;
 
 
 #[doc = "Elasticsearch connection 을 싱글톤으로 관리하기 위한 전역 변수."]
@@ -14,28 +14,36 @@ static ELASTICSEARCH_CLIENT: once_lazy<Arc<EsRepositoryPub>> = once_lazy::new(||
 #[doc = "Function to initialize Elasticsearch connection instances"]
 pub fn initialize_elastic_clients() -> Arc<EsRepositoryPub> {
     
-    let config: Configs = match read_toml_from_file::<Configs>("./config/Config.toml") {
-        Ok(config) => config,
-        Err(e) => {
-            error!("[Error][initialize_elastic_clients() -> new()]{:?}", e);
-            panic!("{:?}", e)
-        }
-    };
-    
-    let elastic_host = config.server.elastic_host.unwrap_or_else(|| {
-        error!("[Error][initialize_elastic_clients()] Value 'elastic_host' not found.");
-        panic!("[Error][initialize_elastic_clients()] Value 'elastic_host' not found.")
-    });
-    
-    let elastic_id = config.server.elastic_id.unwrap_or_else(|| {
-        error!("[Error][initialize_elastic_clients()] Value 'elastic_id' not found.");
-        panic!("[Error][initialize_elastic_clients()] Value 'elastic_id' not found.")
-    });
+    let elastic_host;
+    let elastic_id;
+    let elastic_pw;
+    {
+        let server_config: RwLockReadGuard<'_, Configs> = match get_config_read() {
+            Ok(server_config) => server_config,
+            Err(e) => {
+                error!("[Error][initialize_elastic_clients()] {:?}", e);
+                panic!("{:?}", e)
+            }
+        };
+        
+        elastic_host = server_config
+            .server
+            .elastic_host()
+            .clone()
+            .unwrap_or(Vec::new());
 
-    let elastic_pw = config.server.elastic_pw.unwrap_or_else(|| {
-        error!("[Error][initialize_elastic_clients()] Value 'elastic_pw' not found.");
-        panic!("[Error][initialize_elastic_clients()] Value 'elastic_pw' not found.")
-    });
+        elastic_id = server_config
+            .server
+            .elastic_id()
+            .clone()
+            .unwrap_or(String::new());
+
+        elastic_pw = server_config
+            .server
+            .elastic_pw()
+            .clone()
+            .unwrap_or(String::new());
+    }
     
     let es_helper = match EsRepositoryPub::new(
         elastic_host, 

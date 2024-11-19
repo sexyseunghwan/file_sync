@@ -60,7 +60,6 @@ pub use actix_web::{
     App, 
     HttpServer, 
     HttpResponse,
-    // web::{Bytes,route},
     dev::{ ServiceRequest, ServiceResponse, Transform, Service },
     Error
 };
@@ -105,11 +104,8 @@ pub use elasticsearch::{
     Elasticsearch, 
     http::transport::{ SingleNodeConnectionPool, TransportBuilder },
     http::Url,
-    http::response::Response,
-    SearchParts, 
-    IndexParts, 
-    DeleteParts,
-    http::transport::{ Transport, ConnectionPool }
+    http::response::Response, 
+    IndexParts
 };
 
 

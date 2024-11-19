@@ -35,13 +35,12 @@ where
     pub async fn run(&self) -> Result<(), anyhow::Error> {
         
         /* 감시할 파일 리스트 */
-        let slave_address_vec; //= self.config_req_service.get_watch_file_list();
+        let slave_address_vec;
         {
             let server_config = get_config_read()?;
             slave_address_vec = server_config.server.get_watch_file_list();
         }
-
-
+        
         let mut hotwatch = Hotwatch::new()?;
 
         /* 해당 파일을 계속 감시해준다. */

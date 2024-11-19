@@ -1,6 +1,5 @@
 use crate::common::*;
 
-use crate::router::app_router;
 use crate::service::request_service::*;
 use crate::service::watch_service::*;
 
@@ -38,10 +37,8 @@ where
     #[doc = "프로그램 role 이 slave 인경우의 작업"]
     pub async fn run(&self) -> Result<(), anyhow::Error> {
 
-        let config_req_service = self.req_service.clone();
-        let watch_service = self.watch_service.clone();
-
-
+        //let config_req_service = self.req_service.clone();
+        //let watch_service = self.watch_service.clone();
         let slave_host;
         let master_address;
         {

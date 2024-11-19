@@ -77,3 +77,26 @@ pub fn get_naive_date_from_str(date: &str, format: &str) -> Result<NaiveDate, an
         .map_err(|e| anyhow!("[Datetime Parsing Error][get_naive_date_from_str()] Failed to parse date string: {:?} : {:?}", date, e))
     
 }
+
+
+#[doc = "주어진 날짜 문자열이 유효한지 확인하고, UTC 기준으로 오늘과의 날짜 차이를 계산"]
+/// # Arguments
+/// `date_str` - 날짜를 나타내는 문자열
+/// 
+/// # Returns
+/// * Result<i64, anyhow::Error>
+pub fn calculate_date_difference_utc(date_str: &str) -> Result<i64, anyhow::Error> {
+    
+    /* 문자열을 NaiveDate 객체로 변환 */ 
+    let parsed_date = NaiveDate::parse_from_str(date_str, "%Y%m%d")
+        .map_err(|e| anyhow!("Invalid date format: {:?}", e))?;
+
+    /* UTC 기준의 오늘 날짜 구하기 */ 
+    let today = get_current_utc_naivedate();
+
+    /* 날짜 차이 계산 */ 
+    let duration = today.signed_duration_since(parsed_date);
+
+    /* 날짜 차이의 일수 반환 */ 
+    Ok(duration.num_days())
+}

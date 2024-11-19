@@ -1,7 +1,7 @@
 use crate::common::*;
 
 #[derive(Debug, Deserialize, Serialize, Getters)]
-#[getset(get = "pub", set = "pub")]
+#[getset(get = "pub")]
 pub struct ServerConfig {
     pub role: String,
     pub host: String,
@@ -13,7 +13,8 @@ pub struct ServerConfig {
     pub slave_backup_path: Option<String>,
     pub elastic_host: Option<Vec<String>>,
     pub elastic_id: Option<String>,
-    pub elastic_pw: Option<String>
+    pub elastic_pw: Option<String>,
+    pub backup_days: Option<i64>
 }
 
 impl ServerConfig {
