@@ -8,6 +8,16 @@ use crate::repository::elastic_repository::*;
 
 
 #[doc = "HTTP 요청을 처리 해주는 함수 - 수정 파일배포 관련 함수"]
+/// # Arguments 
+/// * `client`      -
+/// * `url`         -
+/// * `file_data`   -
+/// * `file_path`   -
+/// * `from_host`   -
+/// * `to_host`     -
+/// 
+/// # Returns
+/// * Result<(), anyhow::Error>
 pub async fn send_file_to_url(
     client: &Client, 
     url: &str, 
@@ -39,6 +49,11 @@ pub async fn send_file_to_url(
 
 
 #[doc = "파일 공유 작업 관련 메시지를 elasticsearch 'file_sync_log' 로그에 남겨주는 함수"]
+/// # Arguments
+/// * `json_data` - 
+/// 
+/// # Returns
+/// * Result<(), anyhow::Error>
 pub async fn send_task_message_to_elastic<T: Serialize + Sync + Send>(json_data: T) -> Result<(), anyhow::Error> {
 
     let es_conn = get_elastic_conn();
