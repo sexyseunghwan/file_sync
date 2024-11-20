@@ -8,6 +8,7 @@ use crate::utils_modules::time_utils::*;
 use crate::model::ElasticMsg::*;
 
 use crate::repository::elastic_repository::*;
+use crate::repository::request_repository::*;
 
 
 #[async_trait]
@@ -81,7 +82,7 @@ impl RequestService for RequestServicePub {
     }
     
     
-
+    
     #[doc = "i/o bound 효율코드"]
     /// # Arguments
     /// * `file_path` - 수정된 파일 경로
@@ -109,7 +110,10 @@ impl RequestService for RequestServicePub {
             
             task::spawn(async move {
                 let from_host_move_clone = from_host_clone.clone();
-                send_file_to_url(&client, &parsing_url, &data_clone, &file_path, &from_host_move_clone, &url).await
+                //send_file_to_url(&client, &parsing_url, &data_clone, &file_path, &from_host_move_clone, &url).await
+                //REQ_CLIENT.test().await?;
+                let req_client = get_request_client();
+                req_client.test().await
             })
             
         }).collect();
@@ -129,13 +133,13 @@ impl RequestService for RequestServicePub {
     /// # Returns
     /// * Result<(), anyhow::Error>
     async fn send_info_to_slave_memory(&self, file_path: &str, file_name: &str, slave_url: Vec<String>) -> Result<(), anyhow::Error>{
-
+        
         let from_host;
         {
             let server_config: RwLockReadGuard<'_, Configs> = get_config_read()?;
             from_host = server_config.server.host().to_string();
         }
-
+        
         let tasks: Vec<_> = slave_url.into_iter().map(|url| {
                 
             let client = self.client.clone();
@@ -155,7 +159,7 @@ impl RequestService for RequestServicePub {
         self.handle_async_function(results)
     }
     
-    
+      
     
     #[doc = "async 함수들의 결과를 파싱해주는 함수"]
     /// # Arguments
