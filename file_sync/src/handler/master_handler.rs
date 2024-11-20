@@ -1,32 +1,31 @@
 use crate::common::*;
 
-//use crate::service::config_request_service::*;
 use crate::service::request_service::*;
-use crate::service::watch_service::*;
+use crate::service::file_service::*;
 
 use crate::configs::Configs::*;
 
 #[derive(Debug)]
-pub struct MasterHandler<R,W>
+pub struct MasterHandler<R,F>
 where 
     R: RequestService + Sync + Send + 'static,
-    W: WatchService + Sync + Send + 'static,
+    F: FileService + Sync + Send + 'static,
 {
     req_service: Arc<R>,
-    watch_service: Arc<W>
+    file_service: Arc<F>
 }
 
 
-impl<R,W> MasterHandler<R,W> 
+impl<R,F> MasterHandler<R,F> 
 where
     R: RequestService + Sync + Send + 'static,
-    W: WatchService + Sync + Send + 'static
+    F: FileService + Sync + Send + 'static
 {
 
-    pub fn new(req_service: Arc<R>, watch_service: Arc<W>) -> Self {
+    pub fn new(req_service: Arc<R>, file_service: Arc<F>) -> Self {
         Self {
             req_service,
-            watch_service,
+            file_service,
         }
     }
     
@@ -86,7 +85,7 @@ where
             match received {
                 Ok(file_name) => {
                     
-                    let watch_res = match self.watch_service.comparison_file(&file_name) {
+                    let watch_res = match self.file_service.comparison_file(&file_name) {
                         Ok(watch_res) => watch_res,
                         Err(e) => {
                             error!("{:?}", e);

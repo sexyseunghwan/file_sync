@@ -1,7 +1,5 @@
 use crate::common::*;
 
-use crate::utils_modules::io_utils::*;
-
 use crate::configs::Configs::*;
 
 
@@ -85,6 +83,14 @@ pub(crate) struct EsClient {
 
 impl EsRepositoryPub {
     
+    #[doc = "Elasticsearch Repository 를 초기화 해주는 함수"]
+    /// # Arguments
+    /// * `hosts` - Elasticsearch host 주소 벡터
+    /// * `es_id` - Elasticsearch 계정정보 - 아이디
+    /// * `es_pw` - Elasticsearch 계정정보 - 비밀번호
+    /// 
+    /// # Returns
+    /// * Result<Self, anyhow::Error>
     pub fn new(hosts: Vec<String>, es_id: &str, es_pw: &str) -> Result<Self, anyhow::Error> {
 
         let mut es_clients: Vec<EsClient> = Vec::new();
@@ -108,7 +114,13 @@ impl EsRepositoryPub {
     }
     
     
+
     #[doc = "Common logic: common node failure handling and node selection"]
+    /// # Arguments
+    /// * `operation` - 실행할 함수 trait
+    /// 
+    /// # Returns
+    /// * Result<Response, anyhow::Error>
     async fn execute_on_any_node<F, Fut>(&self, operation: F) -> Result<Response, anyhow::Error>
     where
         F: Fn(EsClient) -> Fut + Send + Sync,
@@ -122,12 +134,18 @@ impl EsRepositoryPub {
         */ 
         let mut rng = StdRng::from_entropy();
         
+
         /* 클라이언트 목록을 셔플 */ 
         let mut shuffled_clients: Vec<EsClient> = self.es_clients.clone();
         shuffled_clients.shuffle(&mut rng); /* StdRng를 사용하여 셔플 */ 
+        
          
-        /* 셔플된 클라이언트들에 대해 순차적으로 operation 수행 */ 
+        /* 
+            셔플된 클라이언트들에 대해 순차적으로 operation 수행 
+            ** 셔플 클라이언트이므로 하나의 클라이언트만 사용하지 않는다. **
+        */ 
         for es_client in shuffled_clients {
+            
             match operation(es_client).await {
                 Ok(response) => return Ok(response),
                 Err(err) => {
@@ -149,13 +167,20 @@ impl EsRepositoryPub {
 #[async_trait]
 impl EsRepository for EsRepositoryPub {
     
-
+    #[doc = "docs"]
+    /// # Arguments
+    /// * `index_name`  - post 대상이 되는 인덱스 이름
+    /// * `document`    - post 할 내용
+    /// 
+    /// # Returns
+    /// * Result<(), anyhow::Error>
     async fn post_doc(&self, index_name: &str, document: Value) -> Result<(), anyhow::Error> {
 
         /* 클로저 내에서 사용할 복사본을 생성 */ 
         let document_clone = document.clone();
         
         let response = self.execute_on_any_node(|es_client| {
+            
             /* 클로저 내부에서 클론한 값 사용 */ 
             let value = document_clone.clone(); 
     

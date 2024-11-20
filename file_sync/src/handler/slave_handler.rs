@@ -1,7 +1,7 @@
 use crate::common::*;
 
 use crate::service::request_service::*;
-use crate::service::watch_service::*;
+use crate::service::file_service::*;
 
 use crate::middleware::middle_ware::*;
 
@@ -10,26 +10,26 @@ use crate::router::app_router::*;
 use crate::configs::Configs::*;
 
 #[derive(Debug)]
-pub struct SlaveHandler<R,W>
+pub struct SlaveHandler<R,F>
 where 
     R: RequestService + Sync + Send + 'static,
-    W: WatchService + Sync + Send + 'static,
+    F: FileService + Sync + Send + 'static,
 {
     req_service: Arc<R>,
-    watch_service: Arc<W>
+    file_service: Arc<F>
 }
 
 
-impl<R,W> SlaveHandler<R,W> 
+impl<R,F> SlaveHandler<R,F> 
 where
     R: RequestService + Sync + Send + 'static,
-    W: WatchService + Sync + Send + 'static
+    F: FileService + Sync + Send + 'static
 {
     
-    pub fn new(req_service: Arc<R>, watch_service: Arc<W>) -> Self {
+    pub fn new(req_service: Arc<R>, file_service: Arc<F>) -> Self {
         Self {
             req_service,
-            watch_service,
+            file_service,
         }
     }
     
@@ -38,7 +38,8 @@ where
     pub async fn run(&self) -> Result<(), anyhow::Error> {
 
         //let config_req_service = self.req_service.clone();
-        //let watch_service = self.watch_service.clone();
+        let file_service = self.file_service.clone();
+
         let slave_host;
         let master_address;
         {
@@ -52,18 +53,19 @@ where
                 .clone();
         }
         
-
+        
         HttpServer::new(move || {
             App::new()
                 .wrap(CheckIp::new(master_address.clone()))
                 .configure(AppRouter::configure_routes)
-                //.app_data(web::Data::new(config_req_service.clone()))
+                .app_data(web::Data::new(file_service.clone()))
                 //.app_data(web::Data::new(watch_service.clone()))
         })
         .bind(slave_host)?
         .run()
         .await?;
         
+
         Ok(())
     }
 

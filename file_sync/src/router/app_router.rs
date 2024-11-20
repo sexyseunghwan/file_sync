@@ -1,14 +1,13 @@
 use crate::common::*;
 
 use crate::model::ElasticMsg::*;
-
-use crate::utils_modules::io_utils::*;
-use crate::utils_modules::request_utils::*;
-
 use crate::model::FileInfo::*;
+
+use crate::utils_modules::request_utils::*;
 
 use crate::configs::Configs::*;
 
+use crate::service::file_service::*;
 
 #[derive(Debug, new)]
 pub struct AppRouter;
@@ -16,6 +15,10 @@ pub struct AppRouter;
 impl AppRouter {
     
     #[doc = ""]
+    ///
+    /// 
+    /// 
+    /// 
     pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         
         cfg.service(
@@ -32,31 +35,6 @@ impl AppRouter {
 }
 
 
-#[doc = "라우터 함수에서 진행된 작업에 대한 로그를 Elasticsearch 로 보내주기 위한 함수"]
-/// # Arguments
-/// * `from_host`   - 작업진행 서버 주소
-/// * `to_host`     - 피작업 진행 서버 주소
-/// * `file_path`   - 수정된 파일 절대경로
-/// * `task_status` - 작업 성공/실패 여부
-/// * `task_detail` - 작업 관련 디테일 메시지
-/// 
-/// # Returns
-/// * Result<(), anyhow::Error>
-async fn router_log_es_posting(from_host: &str, to_host: &str, file_path: &str, task_status: &str, task_detail: &str) -> Result<(), anyhow::Error> {
-
-    let es_msg = ElasticMsg::new(
-        from_host, 
-        to_host, 
-        file_path, 
-        task_status, 
-        task_detail)?;
-    
-    send_task_message_to_elastic(es_msg).await?;
-
-    Ok(())
-}
-
-
 
 #[doc = "파일 업로드 핸들러 - master 쪽에서 수정된 파일을 넘겨주는데 해당 정보를 가지고 slave 의 파일을 최신화 해주는 함수"]
 /// # Arguments
@@ -68,6 +46,7 @@ async fn router_log_es_posting(from_host: &str, to_host: &str, file_path: &str, 
 async fn upload_handler(
     req: web::Query<FileInfo>,
     mut payload: web::Payload,
+    file_service: web::Data<Arc<FileServicePub>>
 ) -> Result<HttpResponse, Error> {
     
     info!("Receive a file modification signal from the master server");
@@ -127,7 +106,7 @@ async fn upload_handler(
      
      
     /* 파일 백업 시작 */
-    let _backup_res = match copy_file_for_backup(modified_file_path.clone(), &slave_backup_path) {
+    let _backup_res = match file_service.copy_file_for_backup(modified_file_path.clone(), &slave_backup_path) {
         Ok(_) => (),
         Err(e) => {
             error!("[Error][upload_handler()] File backup Failed : {:?}", e);
@@ -151,9 +130,9 @@ async fn upload_handler(
     }
     
     info!("The file '{:?}' has been changed.", watch_path);
-
+    
     /* 아래의 코드는 해당 파일 복사 관련 로그를 Elasticsearch 에 로깅해주기 위한 코드. */ 
-    let _es_post_res = match router_log_es_posting(
+    let _es_post_res = match post_log_to_es(
         &from_host, 
         "", 
         modified_file_path_str, 
