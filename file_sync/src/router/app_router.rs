@@ -1,13 +1,13 @@
 use crate::common::*;
 
-use crate::model::ElasticMsg::*;
 use crate::model::FileInfo::*;
 
-use crate::utils_modules::request_utils::*;
+use crate::repository::request_repository::*;
 
 use crate::configs::Configs::*;
 
 use crate::service::file_service::*;
+use crate::service::request_service::*;
 
 #[derive(Debug, new)]
 pub struct AppRouter;
@@ -38,15 +38,18 @@ impl AppRouter {
 
 #[doc = "파일 업로드 핸들러 - master 쪽에서 수정된 파일을 넘겨주는데 해당 정보를 가지고 slave 의 파일을 최신화 해주는 함수"]
 /// # Arguments
-/// * `req`     - Request 객체 Http 통신을 통해서 넘어온 쿼리의 결과.
-/// * `payload` - 파일 데이터 스트림을 청크방식으로 보내줌. -> 즉 파일 데이터.
+/// * `req`             - Request 객체 Http 통신을 통해서 넘어온 쿼리의 결과.
+/// * `payload`         - 파일 데이터 스트림을 청크방식으로 보내줌. -> 즉 파일 데이터.
+/// * `file_service`    - file 관련 서비스 인스턴스
+/// * `request_service` - request 관련 서비스 인스턴스
 /// 
 /// # Returns
 /// * Result<HttpResponse, Error>
 async fn upload_handler(
     req: web::Query<FileInfo>,
     mut payload: web::Payload,
-    file_service: web::Data<Arc<FileServicePub>>
+    file_service: web::Data<Arc<FileServicePub>>,
+    request_service: web::Data<Arc<RequestServicePub>>
 ) -> Result<HttpResponse, Error> {
     
     info!("Receive a file modification signal from the master server");
@@ -132,7 +135,7 @@ async fn upload_handler(
     info!("The file '{:?}' has been changed.", watch_path);
     
     /* 아래의 코드는 해당 파일 복사 관련 로그를 Elasticsearch 에 로깅해주기 위한 코드. */ 
-    let _es_post_res = match post_log_to_es(
+    let _es_post_res = match request_service.post_log_to_es(
         &from_host, 
         "", 
         modified_file_path_str, 
