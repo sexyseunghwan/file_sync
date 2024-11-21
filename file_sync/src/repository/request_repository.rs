@@ -7,6 +7,13 @@ static REQ_CLIENT: once_lazy<Arc<ReqRepositoryPub>> = once_lazy::new(|| {
 });
 
 
+#[doc = ""]
+pub fn get_request_client() -> Arc<ReqRepositoryPub> {
+    let req_client = &REQ_CLIENT;
+    Arc::clone(&req_client)
+}
+
+
 
 #[doc = ""]
 pub fn initialize_request_clients() -> Arc<ReqRepositoryPub> {
@@ -16,11 +23,6 @@ pub fn initialize_request_clients() -> Arc<ReqRepositoryPub> {
 
 }
 
-#[doc = ""]
-pub fn get_request_client() -> Arc<ReqRepositoryPub> {
-    let req_client = &REQ_CLIENT;
-    Arc::clone(&req_client)
-}
 
 
 #[async_trait]
@@ -34,7 +36,7 @@ pub trait ReqRepository {
 
 #[derive(Debug, Getters, Clone, new)]
 pub struct ReqRepositoryPub {
-    pub client: Client
+    pub client: Arc<Client>
 }
 
 
