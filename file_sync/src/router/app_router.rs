@@ -2,8 +2,6 @@ use crate::common::*;
 
 use crate::model::FileInfo::*;
 
-use crate::repository::request_repository::*;
-
 use crate::configs::Configs::*;
 
 use crate::service::file_service::*;
@@ -15,10 +13,8 @@ pub struct AppRouter;
 impl AppRouter {
     
     #[doc = ""]
-    ///
-    /// 
-    /// 
-    /// 
+    /// # Arguments
+    /// * `cfg` - 웹 서비스 컨피그 객체 : 새로운 서비스를 호스팅할 수 있다.
     pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         
         cfg.service(
