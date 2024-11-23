@@ -31,12 +31,12 @@ pub struct Configs {
     pub server: ServerConfig
 }
 
-#[doc = "config 정보를 반환해주는 함수"]
-pub fn get_server_configs() -> Arc<RwLock<Configs>>
-{
-    let config_info = &CONFIG_INFOS;
-    Arc::clone(&config_info)
-}
+// #[doc = "config 정보를 반환해주는 함수"]
+// pub fn get_server_configs() -> Arc<RwLock<Configs>>
+// {
+//     let config_info = &CONFIG_INFOS;
+//     Arc::clone(&config_info)
+// }
 
 
 #[doc = "config 정보를 반환해주는 함수 - 읽기모드"]
@@ -49,11 +49,11 @@ pub fn get_config_read() -> Result<RwLockReadGuard<'static, Configs>, anyhow::Er
 }
 
 
-#[doc = "config 정보를 반환해주는 함수 - 쓰기모드"]
-pub fn get_config_write() -> Result<RwLockWriteGuard<'static, Configs>, anyhow::Error> {
+// #[doc = "config 정보를 반환해주는 함수 - 쓰기모드"]
+// pub fn get_config_write() -> Result<RwLockWriteGuard<'static, Configs>, anyhow::Error> {
 
-    CONFIG_INFOS
-        .write()
-        .map_err(|e| anyhow!("Failed to acquire the read lock due to poisoning: {:?}", e))
+//     CONFIG_INFOS
+//         .write()
+//         .map_err(|e| anyhow!("Failed to acquire the read lock due to poisoning: {:?}", e))
 
-}
+// }

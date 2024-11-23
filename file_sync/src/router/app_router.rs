@@ -12,7 +12,7 @@ pub struct AppRouter;
 
 impl AppRouter {
     
-    #[doc = ""]
+    #[doc = "Router 서비스를 등록해주는 함수"]
     /// # Arguments
     /// * `cfg` - 웹 서비스 컨피그 객체 : 새로운 서비스를 호스팅할 수 있다.
     pub fn configure_routes(cfg: &mut web::ServiceConfig) {

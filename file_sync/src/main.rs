@@ -51,8 +51,6 @@ async fn main() {
     main_controller.task_main().await;
     
     
-
-
     /* ==== TEST 시나리오 ==== */
     //let mut handles = vec![];
     
