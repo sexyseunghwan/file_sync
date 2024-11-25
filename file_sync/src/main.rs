@@ -49,8 +49,11 @@ async fn main() {
 
     /* 메인함수 호출 */
     main_controller.task_main().await;
-    
-    
+}
+
+
+fn test_scenario() {
+
     /* ==== TEST 시나리오 ==== */
     //let mut handles = vec![];
     
@@ -110,4 +113,5 @@ async fn main() {
     // for handle in handles {
     //     handle.join().unwrap();
     // }
+
 }
