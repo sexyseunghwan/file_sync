@@ -28,7 +28,7 @@ impl ElasticMsg {
     /// * Result<Self, anyhow::Error>
     pub fn new(from_host: &str, to_host: &str, file_path: &str, task_status: &str, task_detail: &str) -> Result<Self, anyhow::Error> {
 
-        let curr_time = get_current_utc_naivedatetime_str("Y-%m-%dT%H:%M:%SZ")?;
+        let curr_time = get_current_utc_naivedatetime_str("%Y-%m-%dT%H:%M:%SZ")?;
         
         let elastic_msg = ElasticMsg {
             timestamp: curr_time,

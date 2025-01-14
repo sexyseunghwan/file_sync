@@ -178,12 +178,12 @@ impl EsRepository for EsRepositoryPub {
 
         /* 클로저 내에서 사용할 복사본을 생성 */ 
         let document_clone = document.clone();
-        
+
         let response = self.execute_on_any_node(|es_client| {
             
             /* 클로저 내부에서 클론한 값 사용 */ 
             let value = document_clone.clone(); 
-    
+            
             async move { 
                 let response = es_client
                     .es_conn
@@ -200,7 +200,8 @@ impl EsRepository for EsRepositoryPub {
         if response.status_code().is_success() {
             Ok(())
         } else {
-            let error_message = format!("[Elasticsearch Error][post_doc()] Failed to index document: Status Code: {}", response.status_code());
+            let msg = response.text().await?;
+            let error_message = format!("[Elasticsearch Error][post_doc()] Failed to index document: Status Code: {}", msg);
             Err(anyhow!(error_message))
         }
     }
