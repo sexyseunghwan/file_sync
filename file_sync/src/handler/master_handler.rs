@@ -38,6 +38,7 @@ where
         {
             let server_config = get_config_read()?;
             slave_address_vec = server_config.server.get_watch_file_list();
+            info!("get_watch_file_list: {:?}", slave_address_vec);
         }
         
         let mut hotwatch = Hotwatch::new()?;
