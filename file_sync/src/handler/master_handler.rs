@@ -38,7 +38,6 @@ where
         {
             let server_config = get_config_read()?;
             slave_address_vec = server_config.server.get_watch_file_list();
-            info!("get_watch_file_list: {:?}", slave_address_vec);
         }
         
         let mut hotwatch = Hotwatch::new()?;
@@ -58,6 +57,8 @@ where
                     
                     match event.paths[0].to_str() {
                         Some(file_path) => {
+                            
+                            info!("change path: {:?}", file_path);
 
                             /* 
                                 변경이 감지된 파일 경로를 파싱해주는 부분
