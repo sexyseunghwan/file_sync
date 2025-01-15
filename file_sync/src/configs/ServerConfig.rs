@@ -14,22 +14,20 @@ pub struct ServerConfig {
     pub elastic_host: Option<Vec<String>>,
     pub elastic_id: Option<String>,
     pub elastic_pw: Option<String>,
-    pub backup_days: Option<i64>
+    pub backup_days: Option<i64>,
 }
 
 impl ServerConfig {
-
     #[doc = "감시하는 파일 리스트를 반환해주는 함수"]
     pub fn get_watch_file_list(&self) -> Vec<String> {
-
         let watch_path: String = self.watch_path.clone();
 
-        let watch_file_lists = self.specific_files
+        let watch_file_lists = self
+            .specific_files
             .iter()
             .map(|file| format!("{}{}", watch_path, file))
             .collect::<Vec<String>>();
 
         watch_file_lists
     }
-
 }

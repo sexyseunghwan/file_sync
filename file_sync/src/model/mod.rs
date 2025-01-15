@@ -1,2 +1,2 @@
-pub mod FileInfo;
 pub mod ElasticMsg;
+pub mod FileInfo;

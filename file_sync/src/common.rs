@@ -1,116 +1,62 @@
-pub use std::{ 
-    sync::{ 
-        Arc, 
-        Mutex, 
-        mpsc::channel,
-        RwLock,
-        RwLockReadGuard,
-        RwLockWriteGuard
-    },
+pub use std::{
     collections::HashMap,
-    fs, 
-    path::{ Path, PathBuf },
+    fs,
     fs::File,
-    io::{ BufReader, Write, Read },
-    task::{ Context, Poll },
+    io::{BufReader, Read, Write},
+    path::{Path, PathBuf},
+    sync::{
+        mpsc::{channel, Sender},
+        Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard,
+    },
+    task::{Context, Poll},
     time::Duration,
 };
 
 pub use derive_new::new;
 
-pub use reqwest::{ 
-    Client, 
-    Body
-};
+pub use reqwest::{Body, Client};
 
-pub use tokio::{
-    io::AsyncReadExt,
-    task
-}; 
+pub use tokio::{io::AsyncReadExt, task};
 
 pub use getset::Getters;
 
-pub use serde::{
-    Deserialize, 
-    Serialize,
-    de::DeserializeOwned
-};
+pub use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 pub use anyhow::anyhow;
 
-pub use serde_json::{Value, from_reader};
+pub use serde_json::{from_reader, Value};
 
 pub use async_trait::async_trait;
 
-pub use log::{info, error, warn};
+pub use log::{error, info, warn};
 
-pub use flexi_logger::{
-    Logger, 
-    FileSpec, 
-    Criterion, 
-    Age, 
-    Naming, 
-    Cleanup, 
-    Record
-};
-
+pub use flexi_logger::{Age, Cleanup, Criterion, FileSpec, Logger, Naming, Record};
 
 pub use actix_web::{
-    web, 
-    App, 
-    HttpServer, 
-    HttpResponse,
-    dev::{ ServiceRequest, ServiceResponse, Transform, Service },
-    Error
+    dev::{Service, ServiceRequest, ServiceResponse, Transform},
+    web, App, Error, HttpResponse, HttpServer,
 };
 
+pub use hotwatch::{Event, EventKind as WatchEventKind, Hotwatch};
 
-pub use hotwatch::{
-    Hotwatch, 
-    Event, 
-    EventKind as WatchEventKind
-};
-
-
-pub use sha2::{
-    Sha256, 
-    Digest
-};
-
+pub use sha2::{Digest, Sha256};
 
 pub use futures::{
-    stream::TryStreamExt,
     future::join_all,
-    future::{
-        Ready as FuterReady,
-        ok
-    },
-    Future
+    future::{ok, Ready as FuterReady},
+    stream::TryStreamExt,
+    Future,
 };
-
 
 pub use once_cell::sync::Lazy as once_lazy;
 
-
-pub use chrono::{
-    NaiveDate,
-    NaiveDateTime,
-    DateTime,
-    Utc
-};
-
+pub use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 
 pub use elasticsearch::{
-    Elasticsearch, 
-    http::transport::{ SingleNodeConnectionPool, TransportBuilder },
+    http::response::Response,
+    http::transport::{SingleNodeConnectionPool, TransportBuilder},
     http::Url,
-    http::response::Response, 
-    IndexParts
+    Elasticsearch, IndexParts,
 };
 
-
-pub use rand:: {
-    prelude::SliceRandom,
-    rngs::StdRng,
-    SeedableRng
-};
+pub use rand::{prelude::SliceRandom, rngs::StdRng, SeedableRng};
