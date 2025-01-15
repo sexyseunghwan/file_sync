@@ -10,7 +10,7 @@ static HASH_STORAGE_CLIENT: once_lazy<Arc<Mutex<HashStorage>>> =
 
 #[doc = "Hash Storage 를 초기화해주는 함수"]
 pub fn initialize_hash_storage_clients() -> Arc<Mutex<HashStorage>> {
-    let watch_path;
+    let hash_file_path;
     {
         let server_config: RwLockReadGuard<'_, Configs> = match get_config_read() {
             Ok(server_config) => server_config,
@@ -20,11 +20,19 @@ pub fn initialize_hash_storage_clients() -> Arc<Mutex<HashStorage>> {
             }
         };
 
-        watch_path = server_config.server.watch_path().clone();
+        hash_file_path = server_config.server.hash_storage_path().clone();
     }
 
+    let hash_file = match hash_file_path {
+        Some(hash_file) => hash_file,
+        None => {
+            error!("[Error][initialize_hash_storage_clients()] Path 'hash_file' does not exist.");
+            panic!("[Error][initialize_hash_storage_clients()] Path 'hash_file' does not exist.");
+        }
+    };
+
     //let hash_map_path = format!("{}hash_storage\\hash_value.json", watch_path);
-    let hash_map_dir = format!("{}hash_storage", watch_path);
+    let hash_map_dir = format!("{}hash_storage", hash_file);
     //let hash_map_file_name = String::from("hash_value.json");
 
     let hash_storage = match HashStorage::load(&hash_map_dir) {

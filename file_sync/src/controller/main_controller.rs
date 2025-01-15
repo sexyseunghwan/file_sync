@@ -32,6 +32,7 @@ where
 
     #[doc = "메인 테스크"]
     pub async fn task_main(&self) {
+        /* System role */
         let role;
         {
             let server_config = match get_config_read() {

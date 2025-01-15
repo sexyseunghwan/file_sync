@@ -30,13 +30,6 @@ pub struct Configs {
     pub server: ServerConfig,
 }
 
-// #[doc = "config 정보를 반환해주는 함수"]
-// pub fn get_server_configs() -> Arc<RwLock<Configs>>
-// {
-//     let config_info = &CONFIG_INFOS;
-//     Arc::clone(&config_info)
-// }
-
 #[doc = "config 정보를 반환해주는 함수 - 읽기모드"]
 pub fn get_config_read() -> Result<RwLockReadGuard<'static, Configs>, anyhow::Error> {
     CONFIG_INFOS
@@ -44,11 +37,16 @@ pub fn get_config_read() -> Result<RwLockReadGuard<'static, Configs>, anyhow::Er
         .map_err(|e| anyhow!("Failed to acquire the read lock due to poisoning: {:?}", e))
 }
 
-// #[doc = "config 정보를 반환해주는 함수 - 쓰기모드"]
-// pub fn get_config_write() -> Result<RwLockWriteGuard<'static, Configs>, anyhow::Error> {
+#[doc = "모니터링 파일의 정확한 위치 리스트를 반환하는 함수"]
+pub fn get_monitoring_file_detail_path() -> Result<Vec<String>, anyhow::Error> {
+    let config = get_config_read()?;
+    let watch_path = config.server.watch_path();
+    let file_list = config.server.specific_files();
 
-//     CONFIG_INFOS
-//         .write()
-//         .map_err(|e| anyhow!("Failed to acquire the read lock due to poisoning: {:?}", e))
+    let monitor_file_list: Vec<String> = file_list
+        .iter()
+        .map(|file_path| format!("{}{}", watch_path, file_path))
+        .collect();
 
-// }
+    Ok(monitor_file_list)
+}

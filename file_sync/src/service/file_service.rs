@@ -17,7 +17,7 @@ pub trait FileService {
         backup_dir_path: &str,
     ) -> Result<(), anyhow::Error>;
     fn backup_file_delete(&self, backup_file_dir: &PathBuf) -> Result<(), anyhow::Error>;
-    fn file_event_process(&self, event: &Event, sender: &Sender<Result<String, String>>);
+    fn file_event_process(&self, event: &Event, sender: &Sender<Result<String, String>>, event_type: &str);
 }
 
 #[derive(Debug, Deserialize, Serialize, new)]
@@ -154,21 +154,21 @@ impl FileService for FileServicePub {
         info!("Backup of file '{}' completed.", &file_name);
         Ok(())
     }
-    
+
     #[doc = "파일 이벤트를 처리해주는 함수"]
     /// # Arguments
     /// * `event`   - 모니터링 파일 관련 이벤트  
     /// * `sender`  -  스레드 간 메시지 전달자
-    fn file_event_process(&self, event: &Event, sender: &Sender<Result<String, String>>) {
+    fn file_event_process(&self, event: &Event, sender: &Sender<Result<String, String>>, event_type: &str) {
         match event.paths[0].to_str() {
             Some(file_path) => {
-                info!("change path: {:?}", file_path);
-
                 /*
                     변경이 감지된 파일 경로를 파싱해주는 부분
                     - windows os 의 경우 경로 앞에 의미없는 문자열이 붙는걸 확인. 해당 문자열을 제거해야함.
                 */
                 let cleaned_path = file_path.replace(r"\\?\", "");
+                
+                info!("[event type]: {}, [file name]: {}", event_type, cleaned_path);
 
                 sender.send(Ok(cleaned_path.clone())).unwrap_or_else(|err| {
                     error!(

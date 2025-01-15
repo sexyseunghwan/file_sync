@@ -15,6 +15,7 @@ pub struct ServerConfig {
     pub elastic_id: Option<String>,
     pub elastic_pw: Option<String>,
     pub backup_days: Option<i64>,
+    pub hash_storage_path: Option<String>,
 }
 
 impl ServerConfig {
@@ -29,5 +30,10 @@ impl ServerConfig {
             .collect::<Vec<String>>();
 
         watch_file_lists
+    }
+
+    #[doc = "감시하는 디렉토리"]
+    pub fn get_watch_dir_path(&self) -> String {
+        self.watch_path().clone()
     }
 }

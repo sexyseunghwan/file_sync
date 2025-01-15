@@ -1,11 +1,11 @@
 /*
 Author      : Seunghwan Shin
 Create date : 2024-11-20
-Description : Elasticsearch 중앙 집중식 사전 관리 시스템
+Description : Elasticsearch 중앙 집중식 사전 관리 시스템.
 
-History     : 2024-11-20 Seunghwan Shin       # [v.1.0.0] first create
+History     : 2024-11-20 Seunghwan Shin       # [v.1.0.0] first create.
+              2025-01-15 Seunghwan Shin       # [v.2.0.0] Linux OS 와도 호환되게 코드 수정.
 */
-
 mod common;
 use crate::common::*;
 
