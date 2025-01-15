@@ -33,6 +33,8 @@ where
     #[doc = "프로그램 role 이 master 인경우의 작업"]
     pub async fn run(&self) -> Result<(), anyhow::Error> {
         
+        info!("master start");
+
         /* 감시할 파일 리스트 */
         let slave_address_vec;
         {
