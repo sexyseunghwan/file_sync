@@ -65,10 +65,13 @@ where
                 self_file_service.file_event_process(&event, &tx, "Remove");
             }
             _ => {
-                error!("[Error][master_handler -> main()] This is an undetectable event.")
+                error!(
+                    "[Error][master_handler -> main()] Undetectable event: kind = {:?}, paths = {:?}",
+                    &event.kind, &event.paths
+                )
             }
         })?;
-
+        
         // for monitor_file in &slave_address_vec {
         //     //let file_path = monitor_file.to_string();
         //     //let file_dir =
