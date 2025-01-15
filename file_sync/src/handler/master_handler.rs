@@ -65,8 +65,8 @@ where
                 self_file_service.file_event_process(&event, &tx, "Remove");
             }
             _ => {
-                error!(
-                    "[Error][master_handler -> main()] Undetectable event: kind = {:?}, paths = {:?}",
+                warn!(
+                    "[Warn][master_handler -> main()] Undetectable event: kind = {:?}, paths = {:?}",
                     &event.kind, &event.paths
                 )
             }
