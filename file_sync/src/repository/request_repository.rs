@@ -12,13 +12,13 @@ static REQ_CLIENT: once_lazy<Arc<ReqRepositoryPub>> =
 
 #[doc = ""]
 pub fn initialize_request_clients() -> Arc<ReqRepositoryPub> {
-    let client = Client::new();
+    let client: Client = Client::new();
     Arc::new(ReqRepositoryPub::new(client))
 }
 
 #[doc = ""]
 pub fn get_request_client() -> Arc<ReqRepositoryPub> {
-    let req_client = &REQ_CLIENT;
+    let req_client: &once_lazy<Arc<ReqRepositoryPub>> = &REQ_CLIENT;
     Arc::clone(req_client)
 }
 
@@ -63,23 +63,23 @@ impl ReqRepository for ReqRepositoryPub {
         from_host: &str,
         to_host: &str,
     ) -> Result<(), anyhow::Error> {
-        let body = Body::from(file_data.to_vec());
+        let body: Body = Body::from(file_data.to_vec());
 
-        let response = self
+        let response: reqwest::Response = self
             .client
             .post(url)
             .header("Content-Type", "multipart/form-data")
             .body(body)
             .send()
             .await?;
-
+        
         if response.status().is_success() {
             info!("File was sent successfully: {}", url);
-            let es_msg = ElasticMsg::new(from_host, to_host, file_path, "success", "master task")?;
+            let es_msg: ElasticMsg = ElasticMsg::new(from_host, to_host, file_path, "success", "master task")?;
             self.send_task_message_to_elastic(es_msg).await?;
             Ok(())
         } else {
-            let es_msg = ElasticMsg::new(from_host, to_host, file_path, "failed", "master task")?;
+            let es_msg: ElasticMsg = ElasticMsg::new(from_host, to_host, file_path, "failed", "master task")?;
             self.send_task_message_to_elastic(es_msg).await?;
             Err(anyhow!(
                 "[Error] Failed to send file: {}",
@@ -87,7 +87,7 @@ impl ReqRepository for ReqRepositoryPub {
             ))
         }
     }
-
+    
     #[doc = "파일 공유 작업 관련 메시지를 elasticsearch 'file_sync_log' 로그에 남겨주는 함수"]
     /// # Arguments
     /// * `json_data` - Elasticsearch 로 보낼 json 객체
@@ -98,11 +98,11 @@ impl ReqRepository for ReqRepositoryPub {
         &self,
         json_data: T,
     ) -> Result<(), anyhow::Error> {
-        let es_conn = get_elastic_conn();
-        let data_json = serde_json::to_value(json_data)?;
+        let es_conn: Arc<EsRepositoryPub> = get_elastic_conn();
+        let data_json: Value = serde_json::to_value(json_data)?;
 
-        let cur_date_utc = get_current_utc_naivedate_str("%Y%m%d")?;
-        let index_name = format!("file_sync_log_{}", cur_date_utc);
+        let cur_date_utc: String = get_current_utc_naivedate_str("%Y%m%d")?;
+        let index_name: String = format!("test_sync_log_{}", cur_date_utc);
 
         es_conn.post_doc(&index_name, data_json).await?;
 

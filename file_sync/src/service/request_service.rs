@@ -49,23 +49,23 @@ impl RequestService for RequestServicePub {
     /// * Result<(), anyhow::Error>
     async fn send_info_to_slave(&self, file_path: &str) -> Result<(), anyhow::Error> {
         let slave_url;
-        let io_improvement_option;
+        let io_improvement_option; /* io 효율코드 옵션 적용 유무 */
         let file_name;
         {
-            let server_config = get_config_read()?;
+            let server_config: RwLockReadGuard<'_, Configs> = get_config_read()?;
             slave_url = server_config
                 .server
                 .slave_address()
                 .clone()
                 .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] 'slave_url' not found."))?;
 
-            let path = Path::new(file_path);
+            let path: &Path = Path::new(file_path);
             file_name = path.file_name()
                 .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] The file name is not valid."))?
                 .to_str()
                 .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] There was a problem converting the file name to a string."))?
                 .to_owned(); /* String으로 복제하여 잠금 외부로 이동 */
-
+            
             io_improvement_option = *server_config.server.io_bound_improvement();
         }
 
@@ -73,6 +73,7 @@ impl RequestService for RequestServicePub {
             self.send_info_to_slave_io(file_path, &file_name, slave_url.clone())
                 .await?;
         } else {
+            /* io 효율코드 옵션을 적용하지 않으면 메모리 효율코드 옵션이 지정된다. */
             self.send_info_to_slave_memory(file_path, &file_name, slave_url.clone())
                 .await?;
         }
@@ -94,24 +95,26 @@ impl RequestService for RequestServicePub {
         file_name: &str,
         slave_url: Vec<String>,
     ) -> Result<(), anyhow::Error> {
-        let file_data = tokio::fs::read(&file_path).await?;
-        let from_host;
+        /* 변경된 파일의 데이터를 read 하여 메모리에 상주시킨다. */
+        let file_data: Vec<u8> = tokio::fs::read(&file_path).await?;
+        let from_host: String;
         {
             let server_config: RwLockReadGuard<'_, Configs> = get_config_read()?;
             from_host = server_config.server.host().to_string();
         }
-
+        
+        /* Slave Server 는 지금 Actix-web 으로 작동되고 있으므로 api 형식을 사용할때처럼 데이터를 송신해주는 것. */
         let tasks: Vec<_> = slave_url
             .into_iter()
             .map(|url: String| {
-                let data_clone = file_data.clone();
-                let parsing_url = format!("http://{}/upload?filename={}", url, file_name);
-                let file_path = file_path.to_string().clone();
-                let from_host_clone = from_host.clone();
+                let data_clone: Vec<u8> = file_data.clone(); /* 변경된 파일 데이터 복제: 소유권으로 인한 문제*/
+                let parsing_url: String = format!("http://{}/upload?filename={}", url, file_name);
+                let file_path: String = file_path.to_string().clone();
+                let from_host_clone: String = from_host.clone();
 
                 task::spawn(async move {
-                    let from_host_move_clone = from_host_clone.clone();
-                    let req_repo = get_request_client();
+                    let from_host_move_clone: String = from_host_clone.clone();
+                    let req_repo: Arc<ReqRepositoryPub> = get_request_client();
                     req_repo
                         .send_file_to_url(
                             &parsing_url,
@@ -144,7 +147,7 @@ impl RequestService for RequestServicePub {
         file_name: &str,
         slave_url: Vec<String>,
     ) -> Result<(), anyhow::Error> {
-        let from_host;
+        let from_host: String;
         {
             let server_config: RwLockReadGuard<'_, Configs> = get_config_read()?;
             from_host = server_config.server.host().to_string();
@@ -153,14 +156,14 @@ impl RequestService for RequestServicePub {
         let tasks: Vec<_> = slave_url
             .into_iter()
             .map(|url| {
-                let parsing_url = format!("http://{}/upload?filename={}", url, file_name);
-                let file_path = file_path.to_string().clone();
-                let from_host_clone = from_host.clone();
-
+                let parsing_url: String = format!("http://{}/upload?filename={}", url, file_name);
+                let file_path: String = file_path.to_string().clone();
+                let from_host_clone: String = from_host.clone();
+                
                 task::spawn(async move {
-                    let file_data = tokio::fs::read(&file_path).await?;
-                    let from_host_move_clone = from_host_clone.clone();
-                    let req_repo = get_request_client();
+                    let file_data: Vec<u8> = tokio::fs::read(&file_path).await?;
+                    let from_host_move_clone: String = from_host_clone.clone();
+                    let req_repo: Arc<ReqRepositoryPub> = get_request_client();
                     req_repo
                         .send_file_to_url(
                             &parsing_url,
@@ -193,10 +196,12 @@ impl RequestService for RequestServicePub {
 
         for result in task_res {
             match result {
-                Ok(Ok(())) => continue, /* Success */
+                Ok(Ok(())) => {
+                    continue
+                }, /* Success */
                 Ok(Err(e)) => {
                     error!(
-                        "[Error][handle_async_function()] Task failed with error: {}",
+                        "[Error][handle_async_function()] Task failed with error: {:?}",
                         e
                     );
                     all_good = false;
@@ -208,7 +213,7 @@ impl RequestService for RequestServicePub {
                 }
             }
         }
-
+        
         if all_good {
             Ok(())
         } else {

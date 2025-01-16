@@ -33,8 +33,8 @@ where
 
     #[doc = "프로그램 role 이 slave 인경우의 작업"]
     pub async fn run(&self) -> Result<(), anyhow::Error> {
-        let slave_host;
-        let master_address;
+        let slave_host: String;
+        let master_address: Vec<String>;
         {
             let server_config: RwLockReadGuard<'_, Configs> = get_config_read()?;
             slave_host = server_config.server.host().to_string();
@@ -47,9 +47,9 @@ where
                 })?
                 .clone();
         }
-
-        let req_service = self.req_service.clone();
-        let file_service = self.file_service.clone();
+        
+        let req_service: Arc<R> = self.req_service.clone();
+        let file_service: Arc<F> = self.file_service.clone();
 
         HttpServer::new(move || {
             App::new()

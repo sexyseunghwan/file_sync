@@ -38,20 +38,22 @@ impl FileService for FileServicePub {
     /// * Result<bool, anyhow::Error> - 파일의 변화가 있는 경우에 True, 변화가 없는 경우에는 False
     fn comparison_file(&self, target_file_path: &str) -> Result<bool, anyhow::Error> {
         /*
-            현재 이벤트가 걸린 파일의 Hash value
+            현재 이벤트가 걸린 파일의 Hash value 계산
             - 문제가 발생할 경우 empty vector 반환
         */
         let event_hash_val: Vec<u8> =
-            conpute_hash(Path::new(target_file_path)).unwrap_or_else(|_| vec![]);
-
-        let storage_hash_guard = get_hash_storage();
-        let mut storage_hash = match storage_hash_guard.lock() {
+            conpute_hash(Path::new(target_file_path))
+            .unwrap_or_else(|_| vec![]);
+        
+        let storage_hash_guard: Arc<Mutex<HashStorage>> = get_hash_storage();
+        let mut storage_hash: MutexGuard<'_, HashStorage> = match storage_hash_guard.lock() {
             Ok(storage_hash) => storage_hash,
             Err(e) => return Err(anyhow!("[Error][monitor_file()] {:?}", e)),
         };
-
-        let storage_hash_val = storage_hash.get_hash(target_file_path);
-
+        
+        /* 이벤트가 발생한 파일의 기존 저장되어있었던 해쉬값을 가져와준다. => 비교를 위함 */
+        let storage_hash_val: Vec<u8> = storage_hash.get_hash(target_file_path);
+        
         /* 저장된 해쉬값과 이벤트로 변경된 파일의 해쉬값이 다른경우 */
         if storage_hash_val != event_hash_val {
             storage_hash.update_hash(target_file_path.to_string(), event_hash_val);
@@ -73,14 +75,14 @@ impl FileService for FileServicePub {
     /// * Result<(), anyhow::Error>
     fn backup_file_delete(&self, backup_file_dir: &PathBuf) -> Result<(), anyhow::Error> {
         /* 백업 유지기간 */
-        let backup_days;
+        let backup_days: i64;
         {
             let server_config: RwLockReadGuard<'_, Configs> = get_config_read()?;
-            backup_days = server_config.server.backup_days().clone().unwrap_or(7);
-        }
-
-        let entries = fs::read_dir(backup_file_dir)?;
-
+            backup_days = server_config.server.backup_days().clone().unwrap_or(7); /* 백업유지기간이 설정이 안되어있다면 기본적으로 7일보존 */
+        }   
+        
+        let entries: fs::ReadDir = fs::read_dir(backup_file_dir)?;
+        
         for entry in entries {
             let entry = match entry {
                 Ok(entry) => entry,
@@ -96,7 +98,7 @@ impl FileService for FileServicePub {
             /* `path`가 디렉토리인 경우의 처리 */
             if path.is_dir() {
                 if let Some(dir_name) = path.file_name().and_then(|name| name.to_str()) {
-                    /* 해당 폴더의 생성일자가 오늘 기준으로 몇일이 되었는지 확인해준다. */
+                    /* 해당 폴더의 생성일자가 오늘 기준으로 며칠이 되었는지 확인해준다. */
                     let days_diff = match calculate_date_difference_utc(dir_name) {
                         Ok(days_diff) => days_diff,
                         Err(e) => {
@@ -104,7 +106,7 @@ impl FileService for FileServicePub {
                             continue;
                         }
                     };
-
+                    
                     /* 날짜가 보관 기간을 넘었을 경우 해당 디렉토리 삭제해준다. */
                     if days_diff >= backup_days {
                         let _delete_res = match delete_directory(&path) {
@@ -116,9 +118,13 @@ impl FileService for FileServicePub {
                         };
                     }
                 }
+            } 
+            /* `path` 가 디렉토리가 아닌 경우의 처리 -> 로깅만 수행 */
+            else {
+                warn!("It cannot be processed if it is not a `Directory`.");
             }
         }
-
+        
         Ok(())
     }
 
@@ -141,12 +147,12 @@ impl FileService for FileServicePub {
             .ok_or_else(|| anyhow!("Non-UTF8 file name"))?;
 
         /* 백업 폴더관련 로직 */
-        let cur_date = get_current_utc_naivedate_str("%Y%m%d")?;
-        let timestamp = get_current_utc_naivedatetime_str("%Y_%m_%d_%H%M%S")?;
-        let new_file_name = format!("{}.{}", file_name, timestamp);
+        let cur_date: String = get_current_utc_naivedate_str("%Y%m%d")?;
+        let timestamp: String = get_current_utc_naivedatetime_str("%Y_%m_%d_%H%M%S")?;
+        let new_file_name: String = format!("{}.{}", file_name, timestamp);
 
         /* 백업 디렉토리 관련 */
-        let mut backup_file_path = PathBuf::from(backup_dir_path);
+        let mut backup_file_path: PathBuf = PathBuf::from(backup_dir_path);
 
         self.backup_file_delete(&backup_file_path)?; /* 백업 파일 삭제 로직 */
 

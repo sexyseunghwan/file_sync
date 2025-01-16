@@ -6,7 +6,7 @@ pub use std::{
     path::{Path, PathBuf},
     sync::{
         mpsc::{channel, Sender},
-        Arc, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard,
+        Arc, Mutex, RwLock, RwLockReadGuard, MutexGuard
     },
     task::{Context, Poll},
     time::Duration,

@@ -97,7 +97,7 @@ impl HashStorage {
         Ok(hash_storage)
     }
 
-    #[doc = "해쉬파일에 해쉬값을 저장해주는 함수."]
+    #[doc = "해쉬파일에 Heap 메모리 상에 존재하는 해쉬값을 저장해주는 함수."]
     pub fn save(&self) -> Result<(), anyhow::Error> {
         let contents = serde_json::to_string(&self)?;
         fs::write(self.dir_path.clone(), contents)?;

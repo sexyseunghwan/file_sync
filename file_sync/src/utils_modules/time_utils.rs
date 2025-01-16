@@ -115,14 +115,14 @@ pub fn get_naive_date_from_str(date: &str, format: &str) -> Result<NaiveDate, an
 /// * Result<i64, anyhow::Error> - 매개변수로 넘어온 날짜와 현재 날짜 사이의 기간을 계산한 값.
 pub fn calculate_date_difference_utc(date_str: &str) -> Result<i64, anyhow::Error> {
     /* 문자열을 NaiveDate 객체로 변환 */
-    let parsed_date = NaiveDate::parse_from_str(date_str, "%Y%m%d")
+    let parsed_date: NaiveDate = NaiveDate::parse_from_str(date_str, "%Y%m%d")
         .map_err(|e| anyhow!("Invalid date format: {:?}", e))?;
 
     /* UTC 기준의 오늘 날짜 구하기 */
-    let today = get_current_utc_naivedate();
+    let today: NaiveDate = get_current_utc_naivedate();
 
     /* 날짜 차이 계산 */
-    let duration = today.signed_duration_since(parsed_date);
+    let duration: chrono::TimeDelta = today.signed_duration_since(parsed_date);
 
     /* 날짜 차이의 일수 반환 */
     Ok(duration.num_days())

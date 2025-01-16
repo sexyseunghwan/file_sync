@@ -38,16 +38,17 @@ async fn main() {
     info!("File Sync Program Start");
 
     /* 종속 서비스 호출 */
-    let config_req_service = Arc::new(RequestServicePub::new());
-    let file_service = Arc::new(FileServicePub::new());
-
+    let config_req_service: Arc<RequestServicePub> = Arc::new(RequestServicePub::new());
+    let file_service: Arc<FileServicePub> = Arc::new(FileServicePub::new());
+    
     /* 메인 컨트롤러 호출 */
-    let main_controller = MainController::new(config_req_service, file_service);
+    let main_controller: MainController<RequestServicePub, FileServicePub> = MainController::new(config_req_service, file_service);
 
     /* 메인함수 호출 */
     main_controller.task_main().await;
 }
 
+/* 테스트 시나리오 */
 fn test_scenario() {
 
     /* ==== TEST 시나리오 ==== */
