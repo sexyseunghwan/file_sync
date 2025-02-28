@@ -1,6 +1,6 @@
 use crate::common::*;
 
-use crate::model::ElasticMsg::*;
+use crate::model::elastic_msg::*;
 
 use crate::repository::elastic_repository::*;
 
@@ -72,14 +72,16 @@ impl ReqRepository for ReqRepositoryPub {
             .body(body)
             .send()
             .await?;
-        
+
         if response.status().is_success() {
             info!("File was sent successfully: {}", url);
-            let es_msg: ElasticMsg = ElasticMsg::new(from_host, to_host, file_path, "success", "master task")?;
+            let es_msg: ElasticMsg =
+                ElasticMsg::new(from_host, to_host, file_path, "success", "master task")?;
             self.send_task_message_to_elastic(es_msg).await?;
             Ok(())
         } else {
-            let es_msg: ElasticMsg = ElasticMsg::new(from_host, to_host, file_path, "failed", "master task")?;
+            let es_msg: ElasticMsg =
+                ElasticMsg::new(from_host, to_host, file_path, "failed", "master task")?;
             self.send_task_message_to_elastic(es_msg).await?;
             Err(anyhow!(
                 "[Error] Failed to send file: {}",
@@ -87,7 +89,7 @@ impl ReqRepository for ReqRepositoryPub {
             ))
         }
     }
-    
+
     #[doc = "파일 공유 작업 관련 메시지를 elasticsearch 'file_sync_log' 로그에 남겨주는 함수"]
     /// # Arguments
     /// * `json_data` - Elasticsearch 로 보낼 json 객체

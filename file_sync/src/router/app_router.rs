@@ -1,6 +1,6 @@
 use crate::common::*;
 
-use crate::model::FileInfo::*;
+use crate::model::file_info::*;
 
 use crate::configs::Configs::*;
 
@@ -88,7 +88,7 @@ async fn download_handler(
             return Err(actix_web::error::ErrorInternalServerError(err_msg));
         }
     };
-    
+
     /* 파일 백업 시작 */
     let _backup_res =
         match file_service.copy_file_for_backup(modified_file_path.clone(), &slave_backup_path) {
@@ -113,8 +113,11 @@ async fn download_handler(
         let data = chunk;
         let _ = chg_file.write_all(&data);
     }
-    
-    info!("The file '{:?}' has been changed.", modified_file_path_clone);
+
+    info!(
+        "The file '{:?}' has been changed.",
+        modified_file_path_clone
+    );
 
     /* 아래의 코드는 해당 파일 복사 관련 로그를 Elasticsearch 에 로깅해주기 위한 코드. */
     let _es_post_res = match request_service

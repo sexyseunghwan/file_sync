@@ -85,7 +85,6 @@ impl EsRepositoryPub {
         let mut es_clients: Vec<EsClient> = Vec::new();
 
         for url in hosts {
-            
             let parse_url: String = if es_id == "" && es_pw == "" {
                 format!("http://{}", url)
             } else {

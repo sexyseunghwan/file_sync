@@ -47,7 +47,7 @@ where
                 })?
                 .clone();
         }
-        
+
         let req_service: Arc<R> = self.req_service.clone();
         let file_service: Arc<F> = self.file_service.clone();
 

@@ -5,6 +5,8 @@ use crate::service::request_service::*;
 
 use crate::configs::Configs::*;
 
+use crate::model::monitoring_path_info::*;
+
 #[derive(Debug)]
 pub struct MasterHandler<R, F>
 where
@@ -35,7 +37,7 @@ where
             let server_config: RwLockReadGuard<'_, Configs> = get_config_read()?;
             watch_dir_path = server_config.server.get_watch_dir_path();
         }
-        
+
         let mut hotwatch: Hotwatch = Hotwatch::new()?;
 
         /* 해당 파일을 계속 감시해준다. */
@@ -46,12 +48,15 @@ where
         /* tx 부분 - 파일변경 감시해주는 부분 */
         hotwatch.watch(watch_dir_path, move |event: Event| match &event.kind {
             WatchEventKind::Modify(_) => {
+                println!("modify!");
                 self_file_service.file_event_process(&event, &tx, "Modify");
             }
             WatchEventKind::Create(_) => {
+                println!("create!");
                 self_file_service.file_event_process(&event, &tx, "Create");
             }
             WatchEventKind::Remove(_) => {
+                println!("remove!");
                 self_file_service.file_event_process(&event, &tx, "Remove");
             }
             _ => {
@@ -67,54 +72,133 @@ where
         */
         for received in rx {
             match received {
-                Ok(file_name) => {
-                    /* 이벤트가 발생한 파일의 내용이 이전과 다른지 판단하기 위함. */
-                    let watch_res = match self.file_service.comparison_file(&file_name) {
-                        Ok(watch_res) => watch_res,
-                        Err(e) => {
-                            error!("{:?}", e);
-                            continue;
+                Ok(file_path) => {
+                    println!("file_namefile_name: {}", file_path);
+
+                    /* 일단 해당 파일이 모니터링 대상인지 확인을 먼저 함 */
+                    let monitor_file_list: Vec<MonitoringPathInfo>;
+                    {
+                        monitor_file_list = get_monitoring_file_detail_path()?;
+                    }
+
+                    let mut monitor_yn: bool = false;
+                    let mut short_file_path: String = String::new();                 
+
+                    for inner_file in monitor_file_list {
+                        let inner_file_path: &Path = Path::new(inner_file.full_file_path());
+                        let file_path: &Path = Path::new(&file_path);
+
+                        /* 현재 이벤트가 발생한 파일이 내가 모니터링 대상으로 지정한 파일인지 체크해줌 */
+                        if inner_file_path == file_path {
+                            monitor_yn = true;
+                            short_file_path = inner_file.file_path().to_string();
+                            break;
                         }
-                    };
+                    }
+                    
+                    
+                    if monitor_yn {
+                        /* 모니터링 대상 파일이 맞는 경우 */
+                        let file_name_path: &Path = Path::new(&file_path);
 
-                    /*
-                        변경 파일이 있는 경우 -> slave 파일에 변경 파일을 보내준다.
-                        - 모니터링 대상인 파일인지 확인해준다.
-                        - 모니터링 대상 파일이 아니라면 slave 로 신호를 보내지 않는다.
-                    */
-                    if watch_res {
-                        let monitor_file_list: Vec<String>;
-                        {
-                            monitor_file_list = get_monitoring_file_detail_path()?;
-                        }
-
-                        let mut monitor_yn = false;
-
-                        for inner_file in monitor_file_list {
-                            /* 현재 이벤트가 발생한 파일이 내가 모니터링 대상으로 지정한 파일인지 체크해줌 */
-                            if file_name == inner_file {
-                                monitor_yn = true;
-                                break;
+                        /* 이벤트가 발생한 파일의 내용이 이전과 다른지 판단하기 위함. */
+                        let modify_yn: bool = match self.file_service.comparison_file(file_name_path) {
+                            Ok(watch_res) => watch_res,
+                            Err(e) => {
+                                error!("[Error][run() -> watch_res]{:?}", e);
+                                continue;
                             }
-                        }
+                        };
                         
-                        /* 이벤트 발생한 파일의 수정 발생이 확인된 경우 -> Slave server 에 정보를 보내준다.*/
-                        if monitor_yn {
-                            match self.req_service.send_info_to_slave(&file_name).await {
+                        if modify_yn {
+
+                            match self.req_service.send_info_to_slave(&file_path, &short_file_path).await {
                                 Ok(_) => {
                                     info!(
                                         "Successfully sent files to slave servers. : {}",
-                                        &file_name
+                                        &short_file_path
                                     );
                                     ()
                                 }
                                 Err(e) => {
-                                    error!("{:?}", e);
+                                    error!("[Error][run() -> modify_yn] {:?}", e);
                                     continue;
                                 }
                             }
+
+                        } else {
+                            info!("This file has not been modified.: {}", &file_path);
                         }
+
+                    } else {
+                        /* 모니터링 대상 파일이 아닌 경우 */
+                        info!("The file '{}' is not a monitoring target file.", &file_path);
                     }
+
+                    // let file_name_path: &Path = Path::new(&file_name);
+
+                    // /* 이벤트가 발생한 파일의 내용이 이전과 다른지 판단하기 위함. */
+                    // let watch_res: bool = match self.file_service.comparison_file(file_name_path) {
+                    //     Ok(watch_res) => watch_res,
+                    //     Err(e) => {
+                    //         error!("{:?}", e);
+                    //         continue;
+                    //     }
+                    // };
+
+                    // /*
+                    //     변경 파일이 있는 경우 -> slave 파일에 변경 파일을 보내준다.
+                    //     - 모니터링 대상인 파일인지 확인해준다.
+                    //     - 모니터링 대상 파일이 아니라면 slave 로 신호를 보내지 않는다.
+                    // */
+                    // if watch_res {
+
+                    //     let monitor_file_list: Vec<String>;
+                    //     {
+                    //         monitor_file_list = get_monitoring_file_detail_path()?;
+                    //     }
+
+                    //     let mut monitor_yn: bool = false;
+
+                    //     for inner_file in monitor_file_list {
+
+                    //         let inner_file_path: &Path = Path::new(&inner_file);
+                    //         let file_name_path: &Path = Path::new(&file_name);
+
+                    //         println!("inner_file_path: {:?}", inner_file_path);
+                    //         println!("file_name_path: {:?}", file_name_path);
+
+                    //         /* 현재 이벤트가 발생한 파일이 내가 모니터링 대상으로 지정한 파일인지 체크해줌 */
+                    //         if inner_file_path == file_name_path {
+                    //             monitor_yn = true;
+                    //             break;
+                    //         }
+                    //     }
+
+                    //     println!("monitor_yn: {:?}", monitor_yn);
+
+                    //     /* 이벤트 발생한 파일의 수정 발생이 확인된 경우 -> Slave server 에 정보를 보내준다.*/
+                    //     if monitor_yn {
+                    //         match self.req_service.send_info_to_slave(&file_name).await {
+                    //             Ok(_) => {
+                    //                 info!(
+                    //                     "Successfully sent files to slave servers. : {}",
+                    //                     &file_name
+                    //                 );
+                    //                 ()
+                    //             }
+                    //             Err(e) => {
+                    //                 error!("{:?}", e);
+                    //                 continue;
+                    //             }
+                    //         }
+                    //     } else {
+                    //         info!(
+                    //             "The file '{}' is not a monitoring target file.",
+                    //             &file_name
+                    //         );
+                    //     }
+                    // }
                 }
                 Err(e) => {
                     error!(

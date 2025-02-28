@@ -4,11 +4,11 @@ use crate::configs::Configs::*;
 
 use crate::repository::request_repository::*;
 
-use crate::model::ElasticMsg::*;
+use crate::model::elastic_msg::*;
 
 #[async_trait]
 pub trait RequestService {
-    async fn send_info_to_slave(&self, file_path: &str) -> Result<(), anyhow::Error>;
+    async fn send_info_to_slave(&self, file_path: &str, file_name: &str) -> Result<(), anyhow::Error>;
     async fn send_info_to_slave_io(
         &self,
         file_path: &str,
@@ -44,13 +44,14 @@ impl RequestService for RequestServicePub {
     #[doc = "master server 에서 파일이 변경되는 경우 해당 변경 정보를 slave server에 공유해준다."]
     /// # Arguments
     /// * `file_path` - 수정된 파일경로
+    /// * `file_name` - 수정된 파일이름
     ///
     /// # Returns
     /// * Result<(), anyhow::Error>
-    async fn send_info_to_slave(&self, file_path: &str) -> Result<(), anyhow::Error> {
-        let slave_url;
-        let io_improvement_option; /* io 효율코드 옵션 적용 유무 */
-        let file_name;
+    async fn send_info_to_slave(&self, file_path: &str, file_name: &str) -> Result<(), anyhow::Error> {
+        let slave_url: Vec<String>;
+        let io_improvement_option: bool; /* io 효율코드 옵션 적용 유무 */
+        //let file_name: String;
         {
             let server_config: RwLockReadGuard<'_, Configs> = get_config_read()?;
             slave_url = server_config
@@ -59,16 +60,20 @@ impl RequestService for RequestServicePub {
                 .clone()
                 .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] 'slave_url' not found."))?;
 
-            let path: &Path = Path::new(file_path);
-            file_name = path.file_name()
-                .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] The file name is not valid."))?
-                .to_str()
-                .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] There was a problem converting the file name to a string."))?
-                .to_owned(); /* String으로 복제하여 잠금 외부로 이동 */
-            
+            // let path: &Path = Path::new(file_path);
+            // file_name = path.file_name()
+            //     .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] The file name is not valid."))?
+            //     .to_str()
+            //     .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] There was a problem converting the file name to a string."))?
+            //     .to_owned(); /* String으로 복제하여 잠금 외부로 이동 */
+
             io_improvement_option = *server_config.server.io_bound_improvement();
         }
 
+        println!("file_path: {}", file_path);
+        println!("file_name: {}", file_name);
+        println!("slave_url: {:?}", slave_url);
+        
         if io_improvement_option {
             self.send_info_to_slave_io(file_path, &file_name, slave_url.clone())
                 .await?;
@@ -102,7 +107,7 @@ impl RequestService for RequestServicePub {
             let server_config: RwLockReadGuard<'_, Configs> = get_config_read()?;
             from_host = server_config.server.host().to_string();
         }
-        
+
         /* Slave Server 는 지금 Actix-web 으로 작동되고 있으므로 api 형식을 사용할때처럼 데이터를 송신해주는 것. */
         let tasks: Vec<_> = slave_url
             .into_iter()
@@ -159,7 +164,7 @@ impl RequestService for RequestServicePub {
                 let parsing_url: String = format!("http://{}/upload?filename={}", url, file_name);
                 let file_path: String = file_path.to_string().clone();
                 let from_host_clone: String = from_host.clone();
-                
+
                 task::spawn(async move {
                     let file_data: Vec<u8> = tokio::fs::read(&file_path).await?;
                     let from_host_move_clone: String = from_host_clone.clone();
@@ -196,9 +201,7 @@ impl RequestService for RequestServicePub {
 
         for result in task_res {
             match result {
-                Ok(Ok(())) => {
-                    continue
-                }, /* Success */
+                Ok(Ok(())) => continue, /* Success */
                 Ok(Err(e)) => {
                     error!(
                         "[Error][handle_async_function()] Task failed with error: {:?}",
@@ -213,7 +216,7 @@ impl RequestService for RequestServicePub {
                 }
             }
         }
-        
+
         if all_good {
             Ok(())
         } else {

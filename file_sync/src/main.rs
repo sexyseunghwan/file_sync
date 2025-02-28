@@ -5,6 +5,7 @@ Description : Elasticsearch 중앙 집중식 사전 관리 시스템.
 
 History     : 2024-11-20 Seunghwan Shin       # [v.1.0.0] first create.
               2025-01-15 Seunghwan Shin       # [v.2.0.0] Linux OS 와도 호환되게 코드 수정.
+              2025-02-28 Seunghwan Shin       # [v.3.0.0] 여러파일을 싱크할 수 있도록 코드 수정
 */
 mod common;
 use crate::common::*;
@@ -40,9 +41,10 @@ async fn main() {
     /* 종속 서비스 호출 */
     let config_req_service: Arc<RequestServicePub> = Arc::new(RequestServicePub::new());
     let file_service: Arc<FileServicePub> = Arc::new(FileServicePub::new());
-    
+
     /* 메인 컨트롤러 호출 */
-    let main_controller: MainController<RequestServicePub, FileServicePub> = MainController::new(config_req_service, file_service);
+    let main_controller: MainController<RequestServicePub, FileServicePub> =
+        MainController::new(config_req_service, file_service);
 
     /* 메인함수 호출 */
     main_controller.task_main().await;

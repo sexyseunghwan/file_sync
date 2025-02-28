@@ -10,7 +10,7 @@ use crate::configs::Configs::*;
 
 #[async_trait]
 pub trait FileService {
-    fn comparison_file(&self, file_path_slice: &str) -> Result<bool, anyhow::Error>;
+    fn comparison_file(&self, file_path_slice: &Path) -> Result<bool, anyhow::Error>;
     fn copy_file_for_backup(
         &self,
         backup_target_file_path: PathBuf,
@@ -36,33 +36,37 @@ impl FileService for FileServicePub {
     ///
     /// # Returns
     /// * Result<bool, anyhow::Error> - 파일의 변화가 있는 경우에 True, 변화가 없는 경우에는 False
-    fn comparison_file(&self, target_file_path: &str) -> Result<bool, anyhow::Error> {
+    fn comparison_file(&self, target_file_path: &Path) -> Result<bool, anyhow::Error> {
+        let target_file_path_str: &str = target_file_path
+            .to_str()
+            .ok_or_else(|| anyhow!("[Error][comparison_file()] There was a problem converting 'target_file_path' to string."))?;
+
         /*
             현재 이벤트가 걸린 파일의 Hash value 계산
             - 문제가 발생할 경우 empty vector 반환
         */
-        let event_hash_val: Vec<u8> =
-            conpute_hash(Path::new(target_file_path))
-            .unwrap_or_else(|_| vec![]);
-        
+        let event_hash_val: Vec<u8> = conpute_hash(target_file_path).unwrap_or_else(|_| vec![]);
+
+        //println!("event_hash_val: {:?}", event_hash_val);
+
         let storage_hash_guard: Arc<Mutex<HashStorage>> = get_hash_storage();
         let mut storage_hash: MutexGuard<'_, HashStorage> = match storage_hash_guard.lock() {
             Ok(storage_hash) => storage_hash,
             Err(e) => return Err(anyhow!("[Error][monitor_file()] {:?}", e)),
         };
-        
+
         /* 이벤트가 발생한 파일의 기존 저장되어있었던 해쉬값을 가져와준다. => 비교를 위함 */
-        let storage_hash_val: Vec<u8> = storage_hash.get_hash(target_file_path);
-        
+        let storage_hash_val: Vec<u8> = storage_hash.get_hash(target_file_path_str);
+
         /* 저장된 해쉬값과 이벤트로 변경된 파일의 해쉬값이 다른경우 */
         if storage_hash_val != event_hash_val {
-            storage_hash.update_hash(target_file_path.to_string(), event_hash_val);
+            storage_hash.update_hash(target_file_path_str.to_string(), event_hash_val);
             storage_hash.save()?;
 
-            info!("The '{}' file has been modified.", target_file_path);
+            info!("The '{}' file has been modified.", target_file_path_str);
             Ok(true) /* 변경 표시 */
         } else {
-            info!("The '{}' file has not been modified.", target_file_path);
+            info!("The '{}' file has not been modified.", target_file_path_str);
             Ok(false) /* 변경없음 표시 */
         }
     }
@@ -78,11 +82,12 @@ impl FileService for FileServicePub {
         let backup_days: i64;
         {
             let server_config: RwLockReadGuard<'_, Configs> = get_config_read()?;
-            backup_days = server_config.server.backup_days().clone().unwrap_or(7); /* 백업유지기간이 설정이 안되어있다면 기본적으로 7일보존 */
-        }   
-        
+            backup_days = server_config.server.backup_days().clone().unwrap_or(7);
+            /* 백업유지기간이 설정이 안되어있다면 기본적으로 7일보존 */
+        }
+
         let entries: fs::ReadDir = fs::read_dir(backup_file_dir)?;
-        
+
         for entry in entries {
             let entry = match entry {
                 Ok(entry) => entry,
@@ -106,7 +111,7 @@ impl FileService for FileServicePub {
                             continue;
                         }
                     };
-                    
+
                     /* 날짜가 보관 기간을 넘었을 경우 해당 디렉토리 삭제해준다. */
                     if days_diff >= backup_days {
                         let _delete_res = match delete_directory(&path) {
@@ -118,13 +123,13 @@ impl FileService for FileServicePub {
                         };
                     }
                 }
-            } 
+            }
             /* `path` 가 디렉토리가 아닌 경우의 처리 -> 로깅만 수행 */
             else {
                 warn!("It cannot be processed if it is not a `Directory`.");
             }
         }
-        
+
         Ok(())
     }
 
@@ -182,7 +187,7 @@ impl FileService for FileServicePub {
                     변경이 감지된 파일 경로를 파싱해주는 부분
                     - windows os 의 경우 경로 앞에 의미없는 문자열이 붙는걸 확인. 해당 문자열을 제거해야함.
                 */
-                let cleaned_path = file_path.replace(r"\\?\", "");
+                let cleaned_path: String = file_path.replace(r"\\?\", "");
 
                 info!(
                     "[event type]: {}, [file name]: {}",

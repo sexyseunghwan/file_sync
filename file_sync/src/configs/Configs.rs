@@ -4,6 +4,8 @@ use crate::configs::ServerConfig::*;
 
 use crate::utils_modules::io_utils::*;
 
+use crate::model::monitoring_path_info::*;
+
 #[doc = "프로그램 기본 Config 정보를 싱글톤으로 관리하기 위한 전역 변수"]
 static CONFIG_INFOS: once_lazy<Arc<RwLock<Configs>>> =
     once_lazy::new(|| initialize_server_configs());
@@ -21,7 +23,7 @@ pub fn initialize_server_configs() -> Arc<RwLock<Configs>> {
         }
     };
 
-    let static_config = Arc::new(RwLock::new(config));
+    let static_config: Arc<RwLock<Configs>> = Arc::new(RwLock::new(config));
     static_config
 }
 
@@ -38,15 +40,20 @@ pub fn get_config_read() -> Result<RwLockReadGuard<'static, Configs>, anyhow::Er
 }
 
 #[doc = "모니터링 파일의 정확한 위치 리스트를 반환하는 함수"]
-pub fn get_monitoring_file_detail_path() -> Result<Vec<String>, anyhow::Error> {
-    let config = get_config_read()?;
-    let watch_path = config.server.watch_path();
-    let file_list = config.server.specific_files();
+pub fn get_monitoring_file_detail_path() -> Result<Vec<MonitoringPathInfo>, anyhow::Error> {
+    let config: RwLockReadGuard<'_, Configs> = get_config_read()?;
+    let watch_path: &String = config.server.watch_path();
+    let file_list: &Vec<String> = config.server.specific_files();
 
-    let monitor_file_list: Vec<String> = file_list
+    let monitor_file_list: Vec<MonitoringPathInfo> = file_list
         .iter()
-        .map(|file_path| format!("{}{}", watch_path, file_path))
+        .map(|file_path| {
+            MonitoringPathInfo::new(
+                file_path.to_string(),
+                format!("{}{}", watch_path, file_path),
+            )
+        })
         .collect();
-
+    
     Ok(monitor_file_list)
 }

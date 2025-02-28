@@ -33,9 +33,9 @@ where
     #[doc = "메인 테스크"]
     pub async fn task_main(&self) {
         /* System role */
-        let role;
+        let role: String;
         {
-            let server_config = match get_config_read() {
+            let server_config: RwLockReadGuard<'_, Configs> = match get_config_read() {
                 Ok(server_config) => server_config,
                 Err(e) => {
                     error!("[Error][task_main()] {:?}", e);
@@ -48,7 +48,7 @@ where
 
         /* System role 이 master 인 경우 */
         if role == "master" {
-            let master_handler =
+            let master_handler: MasterHandler<R, F> =
                 MasterHandler::new(self.req_service.clone(), self.file_service.clone());
 
             match master_handler.run().await {
@@ -60,7 +60,7 @@ where
         } else {
             /* System role 이 slave 인 경우 */
 
-            let slave_handler =
+            let slave_handler: SlaveHandler<R, F> =
                 SlaveHandler::new(self.req_service.clone(), self.file_service.clone());
 
             match slave_handler.run().await {
