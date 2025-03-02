@@ -89,15 +89,18 @@ async fn download_handler(
         }
     };
 
-    /* 파일 백업 시작 */
-    let _backup_res =
-        match file_service.copy_file_for_backup(modified_file_path.clone(), &slave_backup_path) {
+    /* 수정파일이 기존 slave 에도 존재하는 파일일 경우에 백업시작 -> 기존에 존재하지 않는 경우에는 백업 불필요 */
+    if modified_file_path.exists() {
+        /* 파일 백업 시작 */
+        let _backup_res =
+        match file_service.copy_file_for_backup(modified_file_path.clone(), &slave_backup_path, &modified_file_name) {
             Ok(_) => (),
             Err(e) => {
                 error!("[Error][upload_handler()] File backup Failed : {:?}", e);
                 return Err(actix_web::error::ErrorInternalServerError(e));
             }
         };
+    }
 
     /* 전송된 파일로 기존 파일 덮어쓰기 */
     let mut chg_file: File = match File::create(modified_file_path) {

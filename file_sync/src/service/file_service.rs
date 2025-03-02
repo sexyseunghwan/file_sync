@@ -15,6 +15,7 @@ pub trait FileService {
         &self,
         backup_target_file_path: PathBuf,
         backup_dir_path: &str,
+        modified_file_name: &str
     ) -> Result<(), anyhow::Error>;
     fn backup_file_delete(&self, backup_file_dir: &PathBuf) -> Result<(), anyhow::Error>;
     fn file_event_process(
@@ -135,6 +136,7 @@ impl FileService for FileServicePub {
     /// # Arguments
     /// * `backup_target_file_path`     - 동기화 대상이 될 파일 경로
     /// * `backup_dir_path`             - 백업 디렉토리 경로
+    /// * `modified_file_name`          - 변경된 파일의 이름
     ///
     /// # Returns
     /// * Result<(), anyhow::Error>
@@ -142,32 +144,35 @@ impl FileService for FileServicePub {
         &self,
         backup_target_file_path: PathBuf,
         backup_dir_path: &str,
+        modified_file_name: &str
     ) -> Result<(), anyhow::Error> {
-        let file_name = backup_target_file_path
+
+        let file_name: &str = backup_target_file_path
             .file_name()
             .ok_or_else(|| anyhow!("Invalid file name from path"))?
             .to_str()
             .ok_or_else(|| anyhow!("Non-UTF8 file name"))?;
-
+        
         /* 백업 폴더관련 로직 */
         let cur_date: String = get_current_utc_naivedate_str("%Y%m%d")?;
         let timestamp: String = get_current_utc_naivedatetime_str("%Y_%m_%d_%H%M%S")?;
-        let new_file_name: String = format!("{}.{}", file_name, timestamp);
+        let new_file_name: String = format!("{}.{}", modified_file_name, timestamp);
 
         /* 백업 디렉토리 관련 */
         let mut backup_file_path: PathBuf = PathBuf::from(backup_dir_path);
-
-        self.backup_file_delete(&backup_file_path)?; /* 백업 파일 삭제 로직 */
-
+        
+        //self.backup_file_delete(&backup_file_path)?; /* 백업 파일 삭제 로직 -> 주기적으로 삭제해주는 함수 */
+        
         backup_file_path.push(cur_date);
         backup_file_path = create_dir_and_file(backup_file_path, &new_file_name)?;
 
         /* 동기화 대상 파일을 백업 디렉토리에 복사한다. */
         fs::copy(&backup_target_file_path, backup_file_path.as_path())?;
-
+        
         info!("Backup of file '{}' completed.", &file_name);
         Ok(())
     }
+
 
     #[doc = "파일 이벤트를 처리해주는 함수"]
     /// # Arguments
