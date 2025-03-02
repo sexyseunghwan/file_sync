@@ -10,7 +10,7 @@ static HASH_STORAGE_CLIENT: once_lazy<Arc<Mutex<HashStorage>>> =
 
 #[doc = "Hash Storage 를 초기화해주는 함수"]
 pub fn initialize_hash_storage_clients() -> Arc<Mutex<HashStorage>> {
-    let hash_file_path;
+    let hash_file_path: Option<String>;
     {
         let server_config: RwLockReadGuard<'_, Configs> = match get_config_read() {
             Ok(server_config) => server_config,
@@ -23,7 +23,7 @@ pub fn initialize_hash_storage_clients() -> Arc<Mutex<HashStorage>> {
         hash_file_path = server_config.server.hash_storage_path().clone();
     }
 
-    let hash_file = match hash_file_path {
+    let hash_file: String = match hash_file_path {
         Some(hash_file) => hash_file,
         None => {
             error!("[Error][initialize_hash_storage_clients()] Path 'hash_file' does not exist.");
@@ -31,11 +31,9 @@ pub fn initialize_hash_storage_clients() -> Arc<Mutex<HashStorage>> {
         }
     };
 
-    //let hash_map_path = format!("{}hash_storage\\hash_value.json", watch_path);
-    let hash_map_dir = format!("{}hash_storage", hash_file);
-    //let hash_map_file_name = String::from("hash_value.json");
+    //let hash_map_dir: String = format!("{}hash_storage", hash_file);
 
-    let hash_storage = match HashStorage::load(&hash_map_dir) {
+    let hash_storage: HashStorage = match HashStorage::load(&hash_file) {
         Ok(hash_storage) => hash_storage,
         Err(e) => {
             error!(
@@ -51,7 +49,7 @@ pub fn initialize_hash_storage_clients() -> Arc<Mutex<HashStorage>> {
 
 #[doc = "Hash Storage 를 불러와주는 함수"]
 pub fn get_hash_storage() -> Arc<Mutex<HashStorage>> {
-    let hash_storage = &HASH_STORAGE_CLIENT;
+    let hash_storage: &once_lazy<Arc<Mutex<HashStorage>>> = &HASH_STORAGE_CLIENT;
     Arc::clone(hash_storage)
 }
 
@@ -64,11 +62,12 @@ pub struct HashStorage {
 impl HashStorage {
     #[doc = "Hashmap file을 읽어서 로드해주는 함수"]
     pub fn load(hash_map_dir: &str) -> Result<Self, anyhow::Error> {
+    
         /* 디렉토리와 파일이 존재하는지 확인 */
-        let dir_path = create_dir_and_file(hash_map_dir, "hash_value.json")?;
+        let dir_path: PathBuf = create_dir_and_file(hash_map_dir, "hash_value.json")?;
 
-        let contents = fs::read_to_string(&dir_path)?;
-        let dir_path_str = dir_path
+        let contents: String = fs::read_to_string(&dir_path)?;
+        let dir_path_str: &str = dir_path
             .to_str()
             .ok_or_else(|| anyhow!("[Error][load()]The path cannot be converted into a string."))?;
 

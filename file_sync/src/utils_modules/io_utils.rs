@@ -38,15 +38,15 @@ pub fn create_dir_and_file<P: AsRef<Path>, Q: AsRef<Path>>(
     dir_path: P,
     file_name: Q,
 ) -> Result<PathBuf, anyhow::Error> {
-    let dir_path = dir_path.as_ref();
-    let file_name = file_name.as_ref();
+    let dir_path: &Path = dir_path.as_ref();
+    let file_name: &Path = file_name.as_ref();
 
-    let path = Path::new(dir_path);
+    let path: &Path = Path::new(dir_path);
 
     if !path.exists() {
         fs::create_dir_all(path)?;
     }
-
+    
     let file_path: PathBuf = path.join(file_name);
 
     if !file_path.exists() {

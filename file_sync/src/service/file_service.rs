@@ -47,8 +47,6 @@ impl FileService for FileServicePub {
         */
         let event_hash_val: Vec<u8> = conpute_hash(target_file_path).unwrap_or_else(|_| vec![]);
 
-        //println!("event_hash_val: {:?}", event_hash_val);
-
         let storage_hash_guard: Arc<Mutex<HashStorage>> = get_hash_storage();
         let mut storage_hash: MutexGuard<'_, HashStorage> = match storage_hash_guard.lock() {
             Ok(storage_hash) => storage_hash,

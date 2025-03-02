@@ -59,7 +59,6 @@ where
             }
         } else {
             /* System role 이 slave 인 경우 */
-
             let slave_handler: SlaveHandler<R, F> =
                 SlaveHandler::new(self.req_service.clone(), self.file_service.clone());
 
