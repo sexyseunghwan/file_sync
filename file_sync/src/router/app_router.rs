@@ -60,7 +60,7 @@ async fn download_handler(
             .server
             .slave_backup_path()
             .clone()
-            .unwrap_or(String::new());
+            .unwrap_or_default();
 
         from_host = server_config.server.host().clone();
     }
@@ -79,6 +79,7 @@ async fn download_handler(
         - ElasticMsg 생성을 위한 변수
     */
     let modified_file_path_clone: PathBuf = modified_file_path.clone();
+
     let modified_file_path_str = match modified_file_path_clone.to_str() {
         Some(modified_file_path_str) => modified_file_path_str,
         None => {
@@ -91,16 +92,17 @@ async fn download_handler(
 
     /* 수정파일이 기존 slave 에도 존재하는 파일일 경우에 백업시작 -> 기존에 존재하지 않는 경우에는 백업 불필요 */
     if modified_file_path.exists() {
+        
         /* 파일 백업 시작 */
-        let _backup_res =
         match file_service.copy_file_for_backup(modified_file_path.clone(), &slave_backup_path, &modified_file_name) {
             Ok(_) => (),
             Err(e) => {
                 error!("[Error][upload_handler()] File backup Failed : {:?}", e);
                 return Err(actix_web::error::ErrorInternalServerError(e));
             }
-        };
+        }
     }
+
 
     /* 전송된 파일로 기존 파일 덮어쓰기 */
     let mut chg_file: File = match File::create(modified_file_path) {
@@ -123,7 +125,7 @@ async fn download_handler(
     );
 
     /* 아래의 코드는 해당 파일 복사 관련 로그를 Elasticsearch 에 로깅해주기 위한 코드. */
-    let _es_post_res = match request_service
+    match request_service
         .post_log_to_es(
             &from_host,
             "",
@@ -138,7 +140,7 @@ async fn download_handler(
             error!("{:?}", e);
             return Err(actix_web::error::ErrorInternalServerError(e));
         }
-    };
+    }
 
     Ok(HttpResponse::Ok().body("File uploaded successfully"))
 }

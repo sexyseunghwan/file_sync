@@ -6,7 +6,7 @@ use crate::configs::Configs::*;
 
 #[doc = "Hash Storage를 전역적으로 사용하기 위함."]
 static HASH_STORAGE_CLIENT: once_lazy<Arc<Mutex<HashStorage>>> =
-    once_lazy::new(|| initialize_hash_storage_clients());
+    once_lazy::new(initialize_hash_storage_clients);
 
 #[doc = "Hash Storage 를 초기화해주는 함수"]
 pub fn initialize_hash_storage_clients() -> Arc<Mutex<HashStorage>> {
@@ -75,11 +75,10 @@ impl HashStorage {
             Ok(hashes) => hashes,
             Err(e) => {
                 warn!("[WARN][load()] No data exists in file 'hash map': {:?}", e);
-                let storage = HashStorage {
+                HashStorage {
                     hashes: HashMap::new(),
                     dir_path: dir_path_str.to_string(),
-                };
-                storage
+                }
             }
         };
 

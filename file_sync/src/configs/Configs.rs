@@ -8,7 +8,7 @@ use crate::model::monitoring_path_info::*;
 
 #[doc = "프로그램 기본 Config 정보를 싱글톤으로 관리하기 위한 전역 변수"]
 static CONFIG_INFOS: once_lazy<Arc<RwLock<Configs>>> =
-    once_lazy::new(|| initialize_server_configs());
+    once_lazy::new(initialize_server_configs);
 
 #[doc = "Config 정보를 초기화해주는 함수"]
 pub fn initialize_server_configs() -> Arc<RwLock<Configs>> {

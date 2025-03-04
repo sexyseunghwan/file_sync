@@ -17,7 +17,7 @@ pub trait FileService {
         backup_dir_path: &str,
         modified_file_name: &str
     ) -> Result<(), anyhow::Error>;
-    fn backup_file_delete(&self, backup_file_dir: &PathBuf) -> Result<(), anyhow::Error>;
+    fn backup_file_delete(&self, backup_file_dir: &Path) -> Result<(), anyhow::Error>;
     fn file_event_process(
         &self,
         event: &Event,
@@ -76,26 +76,26 @@ impl FileService for FileServicePub {
     ///
     /// # Returns
     /// * Result<(), anyhow::Error>
-    fn backup_file_delete(&self, backup_file_dir: &PathBuf) -> Result<(), anyhow::Error> {
+    fn backup_file_delete(&self, backup_file_dir: &Path) -> Result<(), anyhow::Error> {
         /* 백업 유지기간 */
-        let backup_days: i64;
+        /* 백업유지기간이 설정이 안되어있다면 기본적으로 7일보존 */
+        let backup_days: i64 = 
         {
             let server_config: RwLockReadGuard<'_, Configs> = get_config_read()?;
-            backup_days = server_config.server.backup_days().clone().unwrap_or(7);
-            /* 백업유지기간이 설정이 안되어있다면 기본적으로 7일보존 */
-        }
+            (*server_config.server.backup_days()).unwrap_or(7)
+        };
 
         let entries: fs::ReadDir = fs::read_dir(backup_file_dir)?;
 
         for entry in entries {
-            let entry = match entry {
+            let entry: fs::DirEntry = match entry {
                 Ok(entry) => entry,
                 Err(e) => {
                     error!("[Error][backup_file_delete()] There is a problem with the value of 'entry'. : {:?}", e);
                     continue;
                 }
             };
-
+            
             /* 백업 디렉토리 날짜별 폴더 경로 */
             let path: PathBuf = entry.path();
 
@@ -113,13 +113,13 @@ impl FileService for FileServicePub {
 
                     /* 날짜가 보관 기간을 넘었을 경우 해당 디렉토리 삭제해준다. */
                     if days_diff >= backup_days {
-                        let _delete_res = match delete_directory(&path) {
+                        match delete_directory(&path) {
                             Ok(_) => (),
                             Err(e) => {
                                 error!("[Error][backup_file_delete()] {:?}", e);
                                 continue;
                             }
-                        };
+                        }
                     }
                 }
             }
@@ -146,7 +146,7 @@ impl FileService for FileServicePub {
         backup_dir_path: &str,
         modified_file_name: &str
     ) -> Result<(), anyhow::Error> {
-
+        
         let file_name: &str = backup_target_file_path
             .file_name()
             .ok_or_else(|| anyhow!("Invalid file name from path"))?
@@ -160,8 +160,8 @@ impl FileService for FileServicePub {
 
         /* 백업 디렉토리 관련 */
         let mut backup_file_path: PathBuf = PathBuf::from(backup_dir_path);
-        
-        //self.backup_file_delete(&backup_file_path)?; /* 백업 파일 삭제 로직 -> 주기적으로 삭제해주는 함수 */
+
+        self.backup_file_delete(&backup_file_path)?; /* 백업 파일 삭제 로직 -> 주기적으로 삭제해주는 함수 */
         
         backup_file_path.push(cur_date);
         backup_file_path = create_dir_and_file(backup_file_path, &new_file_name)?;

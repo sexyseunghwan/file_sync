@@ -51,63 +51,63 @@ async fn main() {
 }
 
 /* 테스트 시나리오 */
-fn test_scenario() {
+// fn test_scenario() {
 
-    /* ==== TEST 시나리오 ==== */
-    //let mut handles = vec![];
+//     /* ==== TEST 시나리오 ==== */
+//     //let mut handles = vec![];
 
-    // use repository::request_repository::*;
+//     // use repository::request_repository::*;
 
-    // let mut handles: Vec<task::JoinHandle<()>> = Vec::new();
+//     // let mut handles: Vec<task::JoinHandle<()>> = Vec::new();
 
-    // for i in 0..10 {
+//     // for i in 0..10 {
 
-    //     let client_clone = get_request_client();
+//     //     let client_clone = get_request_client();
 
-    //     let handle = tokio::spawn(async move {
+//     //     let handle = tokio::spawn(async move {
 
-    //         let url = format!("http://192.168.0.98:9000/test?filename={}", i);
+//     //         let url = format!("http://192.168.0.98:9000/test?filename={}", i);
 
-    //         let test = client_clone.post(&url).send().await.unwrap();
+//     //         let test = client_clone.post(&url).send().await.unwrap();
 
-    //         tokio::time::sleep(Duration::from_secs(2)).await;
-    //         println!("Task {} completed.", i);
-    //     });
-    //     handles.push(handle);
-    // }
+//     //         tokio::time::sleep(Duration::from_secs(2)).await;
+//     //         println!("Task {} completed.", i);
+//     //     });
+//     //     handles.push(handle);
+//     // }
 
-    // // 모든 태스크가 완료될 때까지 기다림
-    // for handle in handles {
-    //     handle.await.unwrap();
-    // }
+//     // // 모든 태스크가 완료될 때까지 기다림
+//     // for handle in handles {
+//     //     handle.await.unwrap();
+//     // }
 
-    // for i in 0..5 {
+//     // for i in 0..5 {
 
-    //     //let client_clone = Arc::clone(&client_arc); // 각 스레드에서 사용할 Client의 클론 생성
-    //     let client_clone = get_request_client();
+//     //     //let client_clone = Arc::clone(&client_arc); // 각 스레드에서 사용할 Client의 클론 생성
+//     //     let client_clone = get_request_client();
 
-    //     let handle = tokio::spawn(move || {
-    //         // 각 스레드에서 HTTP 요청 수행
-    //         let url = format!("http://192.168.0.98/upload?filename={}", i);
+//     //     let handle = tokio::spawn(move || {
+//     //         // 각 스레드에서 HTTP 요청 수행
+//     //         let url = format!("http://192.168.0.98/upload?filename={}", i);
 
-    //         let test = client_clone.client.post(&url).send()
+//     //         let test = client_clone.client.post(&url).send()
 
-    //         match client_clone.client.post(&url).send() {
-    //             Ok(response) => {
-    //                 println!("Thread {}: Received response: {}", i, response.status());
-    //             }
-    //             Err(e) => {
-    //                 println!("Thread {}: Error sending request: {}", i, e);
-    //             }
-    //         }
-    //     });
+//     //         match client_clone.client.post(&url).send() {
+//     //             Ok(response) => {
+//     //                 println!("Thread {}: Received response: {}", i, response.status());
+//     //             }
+//     //             Err(e) => {
+//     //                 println!("Thread {}: Error sending request: {}", i, e);
+//     //             }
+//     //         }
+//     //     });
 
-    //     handles.push(handle);
-    //     std::thread::sleep(Duration::from_millis(100)); // 간단한 딜레이
-    // }
+//     //     handles.push(handle);
+//     //     std::thread::sleep(Duration::from_millis(100)); // 간단한 딜레이
+//     // }
 
-    // // 모든 스레드가 완료되기를 기다림
-    // for handle in handles {
-    //     handle.join().unwrap();
-    // }
-}
+//     // // 모든 스레드가 완료되기를 기다림
+//     // for handle in handles {
+//     //     handle.join().unwrap();
+//     // }
+// }

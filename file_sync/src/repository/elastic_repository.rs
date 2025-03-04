@@ -4,7 +4,7 @@ use crate::configs::Configs::*;
 
 #[doc = "Elasticsearch connection 을 싱글톤으로 관리하기 위한 전역 변수."]
 static ELASTICSEARCH_CLIENT: once_lazy<Arc<EsRepositoryPub>> =
-    once_lazy::new(|| initialize_elastic_clients());
+    once_lazy::new(initialize_elastic_clients);
 
 #[doc = "Function to initialize Elasticsearch connection instances"]
 pub fn initialize_elastic_clients() -> Arc<EsRepositoryPub> {
@@ -24,22 +24,22 @@ pub fn initialize_elastic_clients() -> Arc<EsRepositoryPub> {
             .server
             .elastic_host()
             .clone()
-            .unwrap_or(Vec::new());
-
+            .unwrap_or_default();
+        
         elastic_id = server_config
             .server
             .elastic_id()
             .clone()
-            .unwrap_or(String::new());
+            .unwrap_or_default();
 
         elastic_pw = server_config
             .server
             .elastic_pw()
             .clone()
-            .unwrap_or(String::new());
+            .unwrap_or_default();
     }
-
-    let es_helper = match EsRepositoryPub::new(elastic_host, &elastic_id, &elastic_pw) {
+    
+    let es_helper: EsRepositoryPub = match EsRepositoryPub::new(elastic_host, &elastic_id, &elastic_pw) {
         Ok(es_helper) => es_helper,
         Err(err) => {
             error!("{:?}", err);
@@ -52,8 +52,8 @@ pub fn initialize_elastic_clients() -> Arc<EsRepositoryPub> {
 
 #[doc = "엘라스틱 서치 커넥션을 가져와주는 get() 함수"]
 pub fn get_elastic_conn() -> Arc<EsRepositoryPub> {
-    let es_conn = &ELASTICSEARCH_CLIENT;
-    Arc::clone(&es_conn)
+    let es_conn: &once_lazy<Arc<EsRepositoryPub>> = &ELASTICSEARCH_CLIENT;
+    Arc::clone(es_conn)
 }
 
 #[async_trait]
@@ -85,7 +85,7 @@ impl EsRepositoryPub {
         let mut es_clients: Vec<EsClient> = Vec::new();
 
         for url in hosts {
-            let parse_url: String = if es_id == "" && es_pw == "" {
+            let parse_url: String = if es_id.is_empty() && es_pw.is_empty() {
                 format!("http://{}", url)
             } else {
                 format!("http://{}:{}@{}", es_id, es_pw, url)

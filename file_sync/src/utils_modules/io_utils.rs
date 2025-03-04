@@ -1,18 +1,5 @@
 use crate::common::*;
 
-#[doc = "Json 파일을 읽어서 객체로 변환해주는 함수."]
-/// # Arguments
-/// * `file_path` - 읽을대상 파일이 존재하는 경로
-///
-/// # Returns
-/// * Result<T, anyhow::Error> - 성공적으로 파일을 읽었을 경우에는 json 호환 객체를 반환해준다.
-pub fn read_json_from_file<T: DeserializeOwned>(file_path: &str) -> Result<T, anyhow::Error> {
-    let file = File::open(file_path)?;
-    let reader = BufReader::new(file);
-    let data = from_reader(reader)?;
-
-    Ok(data)
-}
 
 #[doc = "toml 파일을 읽어서 객체로 변환해주는 함수"]
 /// # Arguments
@@ -42,17 +29,22 @@ pub fn create_dir_and_file<P: AsRef<Path>, Q: AsRef<Path>>(
     let file_name: &Path = file_name.as_ref();
 
     let path: &Path = Path::new(dir_path);
-
-    if !path.exists() {
-        fs::create_dir_all(path)?;
-    }
-    
     let file_path: PathBuf = path.join(file_name);
 
-    if !file_path.exists() {
-        let _file = File::create(&file_path)?;
-    }
+    let file_dir: &Path = file_path.parent().ok_or_else(|| anyhow!("[Error][create_dir_and_file()] Failed to get parent directory"))?;
 
+    if !file_path.exists() {
+        match fs::create_dir_all(file_dir) {
+            Ok(_) => (),
+            Err(e) => return Err(anyhow!("[Error][create_dir_and_file()] Failed to create directory '{:?}' : {:?}", &file_path, e)),
+        }
+        
+        match File::create(&file_path) {
+            Ok(file) => file,
+            Err(e) => return Err(anyhow!("[Error][create_dir_and_file()] Failed to create file '{:?}' : {:?}", file_path, e)),
+        };
+    }
+    
     Ok(file_path)
 }
 

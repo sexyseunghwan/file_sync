@@ -114,7 +114,6 @@ where
                                         "Successfully sent files to slave servers. : {}",
                                         &short_file_path
                                     );
-                                    ()
                                 }
                                 Err(e) => {
                                     error!("[Error][run() -> modify_yn] {:?}", e);

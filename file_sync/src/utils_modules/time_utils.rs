@@ -65,48 +65,6 @@ pub fn get_str_from_naivedate(naive_date: NaiveDate, fmt: &str) -> Result<String
     Ok(result_date)
 }
 
-#[doc = "Function that converts the date data 'naivedatetime' format to String format"]
-/// # Arguments
-/// * `naive_datetime`  - naive_datetime 인스턴스
-/// * `fmt`             - 문자열 포멧터
-///
-/// # Returns
-/// * Result<String, anyhow::Error> - naive_datetime 인스턴스를 문자열로 변환한 데이터
-pub fn get_str_from_naive_datetime(
-    naive_datetime: NaiveDateTime,
-    fmt: &str,
-) -> Result<String, anyhow::Error> {
-    let result_date = naive_datetime.format(fmt).to_string();
-    Ok(result_date)
-}
-
-#[doc = "Function to change 'string' data format to 'NaiveDateTime' format"]
-/// # Arguments
-/// * `date`    - 문자열로 표현된 날짜형 데이터
-/// * `format`  - 문자열 포멧터
-///
-/// # Returns
-/// * Result<NaiveDateTime, anyhow::Error> - 문자열로 표현된 날짜형 데이터를 naive_datetime 인스턴스로 변환
-pub fn get_naive_datetime_from_str(
-    date: &str,
-    format: &str,
-) -> Result<NaiveDateTime, anyhow::Error> {
-    NaiveDateTime::parse_from_str(date, format)
-        .map_err(|e| anyhow!("[Datetime Parsing Error][get_naive_datetime_from_str()] Failed to parse date string: {:?} : {:?}", date, e))
-}
-
-#[doc = "Function to change 'string' data format to 'NaiveDate' format"]
-/// # Arguments
-/// * `date`    - 문자열로 표현된 날짜형 데이터
-/// * `format`  - 문자열 포멧터
-///
-/// # Returns
-/// * Result<NaiveDate, anyhow::Error> - 문자열로 표현된 날짜형 데이터를 naive_date 인스턴스로 변환
-pub fn get_naive_date_from_str(date: &str, format: &str) -> Result<NaiveDate, anyhow::Error> {
-    NaiveDate::parse_from_str(date, format)
-        .map_err(|e| anyhow!("[Datetime Parsing Error][get_naive_date_from_str()] Failed to parse date string: {:?} : {:?}", date, e))
-}
-
 #[doc = "주어진 날짜 문자열이 유효한지 확인하고, UTC 기준으로 오늘과의 날짜 차이를 계산"]
 /// # Arguments
 /// * `date_str` - 날짜를 나타내는 문자열

@@ -19,19 +19,6 @@ pub struct ServerConfig {
 }
 
 impl ServerConfig {
-    #[doc = "감시하는 파일 리스트를 반환해주는 함수"]
-    pub fn get_watch_file_list(&self) -> Vec<String> {
-        let watch_path: String = self.watch_path.clone();
-
-        let watch_file_lists = self
-            .specific_files
-            .iter()
-            .map(|file| format!("{}{}", watch_path, file))
-            .collect::<Vec<String>>();
-
-        watch_file_lists
-    }
-
     #[doc = "감시하는 디렉토리"]
     pub fn get_watch_dir_path(&self) -> String {
         self.watch_path().clone()

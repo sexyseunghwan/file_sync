@@ -6,17 +6,14 @@ use crate::repository::elastic_repository::*;
 
 use crate::utils_modules::time_utils::*;
 
-#[doc = ""]
 static REQ_CLIENT: once_lazy<Arc<ReqRepositoryPub>> =
-    once_lazy::new(|| initialize_request_clients());
+    once_lazy::new(initialize_request_clients);
 
-#[doc = ""]
 pub fn initialize_request_clients() -> Arc<ReqRepositoryPub> {
     let client: Client = Client::new();
     Arc::new(ReqRepositoryPub::new(client))
 }
 
-#[doc = ""]
 pub fn get_request_client() -> Arc<ReqRepositoryPub> {
     let req_client: &once_lazy<Arc<ReqRepositoryPub>> = &REQ_CLIENT;
     Arc::clone(req_client)

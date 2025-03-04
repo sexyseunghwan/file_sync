@@ -51,7 +51,6 @@ impl RequestService for RequestServicePub {
     async fn send_info_to_slave(&self, file_path: &str, file_name: &str) -> Result<(), anyhow::Error> {
         let slave_url: Vec<String>;
         let io_improvement_option: bool; /* io 효율코드 옵션 적용 유무 */
-        //let file_name: String;
         {
             let server_config: RwLockReadGuard<'_, Configs> = get_config_read()?;
             slave_url = server_config
@@ -60,26 +59,15 @@ impl RequestService for RequestServicePub {
                 .clone()
                 .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] 'slave_url' not found."))?;
 
-            // let path: &Path = Path::new(file_path);
-            // file_name = path.file_name()
-            //     .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] The file name is not valid."))?
-            //     .to_str()
-            //     .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] There was a problem converting the file name to a string."))?
-            //     .to_owned(); /* String으로 복제하여 잠금 외부로 이동 */
-
             io_improvement_option = *server_config.server.io_bound_improvement();
         }
-
-        println!("file_path: {}", file_path);
-        println!("file_name: {}", file_name);
-        println!("slave_url: {:?}", slave_url);
         
         if io_improvement_option {
-            self.send_info_to_slave_io(file_path, &file_name, slave_url.clone())
+            self.send_info_to_slave_io(file_path, file_name, slave_url.clone())
                 .await?;
         } else {
             /* io 효율코드 옵션을 적용하지 않으면 메모리 효율코드 옵션이 지정된다. */
-            self.send_info_to_slave_memory(file_path, &file_name, slave_url.clone())
+            self.send_info_to_slave_memory(file_path, file_name, slave_url.clone())
                 .await?;
         }
 
