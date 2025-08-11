@@ -35,19 +35,20 @@ mod configs;
 #[tokio::main]
 async fn main() {
     /* 로깅 시작 */
-    set_global_logger();
-    info!("File Sync Program Start");
+    
+    // set_global_logger();
+    // info!("File Sync Program Start");
 
-    /* 종속 서비스 호출 */
-    let config_req_service: Arc<RequestServicePub> = Arc::new(RequestServicePub::new());
-    let file_service: Arc<FileServicePub> = Arc::new(FileServicePub::new());
+    // /* 종속 서비스 호출 */
+    // let config_req_service: Arc<RequestServicePub> = Arc::new(RequestServicePub::new());
+    // let file_service: Arc<FileServicePub> = Arc::new(FileServicePub::new());
 
-    /* 메인 컨트롤러 호출 */
-    let main_controller: MainController<RequestServicePub, FileServicePub> =
-        MainController::new(config_req_service, file_service);
+    // /* 메인 컨트롤러 호출 */
+    // let main_controller: MainController<RequestServicePub, FileServicePub> =
+    //     MainController::new(config_req_service, file_service);
 
-    /* 메인함수 호출 */
-    main_controller.task_main().await;
+    // /* 메인함수 호출 */
+    // main_controller.task_main().await;
 }
 
 /* 테스트 시나리오 */
