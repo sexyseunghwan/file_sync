@@ -5,7 +5,7 @@ use crate::traits::service::{file_service::*, request_service::*};
 use crate::handler::master_handler::*;
 use crate::handler::slave_handler::*;
 
-use crate::configs::Configs::*;
+use crate::configs::configs::*;
 
 #[derive(Debug)]
 pub struct MainController<R, F>

@@ -1,2 +1,2 @@
-pub mod Configs;
-pub mod ServerConfig;
+pub mod configs;
+pub mod server_config;

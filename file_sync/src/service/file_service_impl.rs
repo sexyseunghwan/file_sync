@@ -8,7 +8,7 @@ use crate::repository::hash_repository::*;
 
 use crate::traits::service::file_service::*;
 
-use crate::configs::Configs::*;
+use crate::configs::configs::*;
 
 #[derive(Debug, Deserialize, Serialize, new)]
 pub struct FileServiceImpl {}

@@ -2,7 +2,7 @@ use crate::common::*;
 
 use crate::utils_modules::io_utils::*;
 
-use crate::configs::Configs::*;
+use crate::configs::configs::*;
 
 #[doc = "Hash Storage를 전역적으로 사용하기 위함."]
 static HASH_STORAGE_CLIENT: once_lazy<Arc<Mutex<HashStorage>>> =

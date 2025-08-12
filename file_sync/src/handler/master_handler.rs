@@ -5,7 +5,7 @@ use crate::common::*;
 
 use crate::traits::service::{file_service::*, request_service::*};
 
-use crate::configs::Configs::*;
+use crate::configs::configs::*;
 
 use crate::model::monitoring_path_info::*;
 

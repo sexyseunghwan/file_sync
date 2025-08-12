@@ -6,7 +6,7 @@ use crate::middleware::middle_ware::*;
 
 use crate::router::app_router::*;
 
-use crate::configs::Configs::*;
+use crate::configs::configs::*;
 
 #[derive(Debug)]
 pub struct SlaveHandler<R, F>

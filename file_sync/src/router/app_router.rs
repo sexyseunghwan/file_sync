@@ -2,7 +2,7 @@ use crate::common::*;
 
 use crate::model::file_info::*;
 
-use crate::configs::Configs::*;
+use crate::configs::configs::*;
 
 use crate::service::file_service_impl::*;
 use crate::service::request_service_impl::*;

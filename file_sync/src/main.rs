@@ -7,7 +7,7 @@ History     : 2024-11-20 Seunghwan Shin       # [v.1.0.0] first create.
               2025-01-15 Seunghwan Shin       # [v.2.0.0] Linux OS 와도 호환되게 코드 수정.
               2025-03-10 Seunghwan Shin       # [v.3.0.0] 여러파일을 싱크할 수 있도록 코드 수정
               2025-08-00 Seunghwan Shin       # [v.4.0.0]
-                                                1) 소스코드 리팩토링
+                                                1) 소스코드 리팩토링 (trait 분리 및 external_clients 디렉토리 구성)
                                                 2) Elasticsearch connection 사용X -> 파일 로그에 남기기로 수정
 */
 mod common;

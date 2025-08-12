@@ -1,6 +1,6 @@
 use crate::common::*;
 
-use crate::configs::ServerConfig::*;
+use crate::configs::server_config::*;
 
 use crate::utils_modules::io_utils::*;
 

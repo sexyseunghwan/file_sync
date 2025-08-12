@@ -1,6 +1,6 @@
 use crate::common::*;
 
-use crate::configs::Configs::*;
+use crate::configs::configs::*;
 
 use crate::traits::service::request_service::*;
 
