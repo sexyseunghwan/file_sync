@@ -1,7 +1,9 @@
 use crate::common::*;
 
-use crate::service::file_service::*;
-use crate::service::request_service::*;
+// use crate::service::file_service_impl::*;
+// use crate::service::request_service_impl::*;
+
+use crate::traits::service::{file_service::*, request_service::*};
 
 use crate::configs::Configs::*;
 
@@ -71,7 +73,6 @@ where
         for received in rx {
             match received {
                 Ok(file_path) => {
-
                     /* 일단 해당 파일이 모니터링 대상인지 확인을 먼저 함 */
                     let monitor_file_list: Vec<MonitoringPathInfo>;
                     {
@@ -79,7 +80,7 @@ where
                     }
 
                     let mut monitor_yn: bool = false;
-                    let mut short_file_path: String = String::new();                 
+                    let mut short_file_path: String = String::new();
 
                     for inner_file in monitor_file_list {
                         let inner_file_path: &Path = Path::new(inner_file.full_file_path());
@@ -92,23 +93,27 @@ where
                             break;
                         }
                     }
-                    
-                    
+
                     if monitor_yn {
                         /* 모니터링 대상 파일이 맞는 경우 */
                         let file_name_path: &Path = Path::new(&file_path);
 
                         /* 이벤트가 발생한 파일의 내용이 이전과 다른지 판단하기 위함. */
-                        let modify_yn: bool = match self.file_service.comparison_file(file_name_path) {
-                            Ok(watch_res) => watch_res,
-                            Err(e) => {
-                                error!("[Error][run() -> watch_res]{:?}", e);
-                                continue;
-                            }
-                        };
-                        
+                        let modify_yn: bool =
+                            match self.file_service.comparison_file(file_name_path) {
+                                Ok(watch_res) => watch_res,
+                                Err(e) => {
+                                    error!("[Error][run() -> watch_res]{:?}", e);
+                                    continue;
+                                }
+                            };
+
                         if modify_yn {
-                            match self.req_service.send_info_to_slave(&file_path, &short_file_path).await {
+                            match self
+                                .req_service
+                                .send_info_to_slave(&file_path, &short_file_path)
+                                .await
+                            {
                                 Ok(_) => {
                                     info!(
                                         "Successfully sent files to slave servers. : {}",
@@ -120,11 +125,9 @@ where
                                     continue;
                                 }
                             }
-
                         } else {
                             info!("This file has not been modified.: {}", &file_path);
                         }
-
                     } else {
                         /* 모니터링 대상 파일이 아닌 경우 */
                         info!("The file '{}' is not a monitoring target file.", &file_path);

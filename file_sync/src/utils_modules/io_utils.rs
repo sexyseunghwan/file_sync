@@ -1,6 +1,5 @@
 use crate::common::*;
 
-
 #[doc = "toml 파일을 읽어서 객체로 변환해주는 함수"]
 /// # Arguments
 /// * `file_path` - 읽을 대상 toml 파일이 존재하는 경로
@@ -31,20 +30,34 @@ pub fn create_dir_and_file<P: AsRef<Path>, Q: AsRef<Path>>(
     let path: &Path = Path::new(dir_path);
     let file_path: PathBuf = path.join(file_name);
 
-    let file_dir: &Path = file_path.parent().ok_or_else(|| anyhow!("[Error][create_dir_and_file()] Failed to get parent directory"))?;
+    let file_dir: &Path = file_path
+        .parent()
+        .ok_or_else(|| anyhow!("[Error][create_dir_and_file()] Failed to get parent directory"))?;
 
     if !file_path.exists() {
         match fs::create_dir_all(file_dir) {
             Ok(_) => (),
-            Err(e) => return Err(anyhow!("[Error][create_dir_and_file()] Failed to create directory '{:?}' : {:?}", &file_path, e)),
+            Err(e) => {
+                return Err(anyhow!(
+                    "[Error][create_dir_and_file()] Failed to create directory '{:?}' : {:?}",
+                    &file_path,
+                    e
+                ))
+            }
         }
-        
+
         match File::create(&file_path) {
             Ok(file) => file,
-            Err(e) => return Err(anyhow!("[Error][create_dir_and_file()] Failed to create file '{:?}' : {:?}", file_path, e)),
+            Err(e) => {
+                return Err(anyhow!(
+                    "[Error][create_dir_and_file()] Failed to create file '{:?}' : {:?}",
+                    file_path,
+                    e
+                ))
+            }
         };
     }
-    
+
     Ok(file_path)
 }
 

@@ -2,8 +2,6 @@ use crate::common::*;
 
 use crate::model::elastic_msg::*;
 
-use crate::repository::elastic_repository::*;
-
 use crate::utils_modules::time_utils::*;
 
 static REQ_CLIENT: once_lazy<Arc<ReqRepositoryPub>> =
@@ -86,25 +84,27 @@ impl ReqRepository for ReqRepositoryPub {
             ))
         }
     }
-
-    #[doc = "파일 공유 작업 관련 메시지를 elasticsearch 'file_sync_log' 로그에 남겨주는 함수"]
-    /// # Arguments
-    /// * `json_data` - Elasticsearch 로 보낼 json 객체
-    ///
-    /// # Returns
-    /// * Result<(), anyhow::Error>
-    async fn send_task_message_to_elastic<T: Serialize + Sync + Send>(
-        &self,
-        json_data: T,
-    ) -> Result<(), anyhow::Error> {
-        let es_conn: Arc<EsRepositoryPub> = get_elastic_conn();
-        let data_json: Value = serde_json::to_value(json_data)?;
-
-        let cur_date_utc: String = get_current_utc_naivedate_str("%Y%m%d")?;
-        let index_name: String = format!("test_sync_log_{}", cur_date_utc);
-
-        es_conn.post_doc(&index_name, data_json).await?;
-
-        Ok(())
-    }
 }
+
+
+
+//#[doc = "파일 공유 작업 관련 메시지를 elasticsearch 'file_sync_log' 로그에 남겨주는 함수"]
+/// # Arguments
+/// * `json_data` - Elasticsearch 로 보낼 json 객체
+///
+/// # Returns
+/// * Result<(), anyhow::Error>
+// async fn send_task_message_to_elastic<T: Serialize + Sync + Send>(
+//     &self,
+//     json_data: T,
+// ) -> Result<(), anyhow::Error> {
+//     let es_conn: Arc<EsRepositoryPub> = get_elastic_conn();
+//     let data_json: Value = serde_json::to_value(json_data)?;
+
+//     let cur_date_utc: String = get_current_utc_naivedate_str("%Y%m%d")?;
+//     let index_name: String = format!("test_sync_log_{}", cur_date_utc);
+
+//     es_conn.post_doc(&index_name, data_json).await?;
+
+//     Ok(())
+// }

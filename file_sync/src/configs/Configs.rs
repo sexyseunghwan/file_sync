@@ -7,12 +7,11 @@ use crate::utils_modules::io_utils::*;
 use crate::model::monitoring_path_info::*;
 
 #[doc = "프로그램 기본 Config 정보를 싱글톤으로 관리하기 위한 전역 변수"]
-static CONFIG_INFOS: once_lazy<Arc<RwLock<Configs>>> =
-    once_lazy::new(initialize_server_configs);
+static CONFIG_INFOS: once_lazy<Arc<RwLock<Configs>>> = once_lazy::new(initialize_server_configs);
 
 #[doc = "Config 정보를 초기화해주는 함수"]
 pub fn initialize_server_configs() -> Arc<RwLock<Configs>> {
-    let config: Configs = match read_toml_from_file::<Configs>("./config/Config.toml") {
+    let config: Configs = match read_toml_from_file::<Configs>("./config/config.toml") {
         Ok(config) => config,
         Err(e) => {
             error!(
@@ -22,7 +21,7 @@ pub fn initialize_server_configs() -> Arc<RwLock<Configs>> {
             panic!("{:?}", e)
         }
     };
-
+    
     let static_config: Arc<RwLock<Configs>> = Arc::new(RwLock::new(config));
     static_config
 }
@@ -54,6 +53,6 @@ pub fn get_monitoring_file_detail_path() -> Result<Vec<MonitoringPathInfo>, anyh
             )
         })
         .collect();
-    
+
     Ok(monitor_file_list)
 }

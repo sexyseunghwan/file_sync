@@ -6,31 +6,15 @@ use crate::utils_modules::time_utils::*;
 
 use crate::repository::hash_repository::*;
 
+use crate::traits::service::file_service::*;
+
 use crate::configs::Configs::*;
 
-#[async_trait]
-pub trait FileService {
-    fn comparison_file(&self, file_path_slice: &Path) -> Result<bool, anyhow::Error>;
-    fn copy_file_for_backup(
-        &self,
-        backup_target_file_path: PathBuf,
-        backup_dir_path: &str,
-        modified_file_name: &str
-    ) -> Result<(), anyhow::Error>;
-    fn backup_file_delete(&self, backup_file_dir: &Path) -> Result<(), anyhow::Error>;
-    fn file_event_process(
-        &self,
-        event: &Event,
-        sender: &Sender<Result<String, String>>,
-        event_type: &str,
-    );
-}
-
 #[derive(Debug, Deserialize, Serialize, new)]
-pub struct FileServicePub {}
+pub struct FileServiceImpl {}
 
 #[async_trait]
-impl FileService for FileServicePub {
+impl FileService for FileServiceImpl {
     #[doc = "변경된 파일을 기존 파일과 비교하는 함수"]
     /// # Arguments
     /// * `target_file_path` - 변화가 생긴 파일의 경로
@@ -79,8 +63,7 @@ impl FileService for FileServicePub {
     fn backup_file_delete(&self, backup_file_dir: &Path) -> Result<(), anyhow::Error> {
         /* 백업 유지기간 */
         /* 백업유지기간이 설정이 안되어있다면 기본적으로 7일보존 */
-        let backup_days: i64 = 
-        {
+        let backup_days: i64 = {
             let server_config: RwLockReadGuard<'_, Configs> = get_config_read()?;
             (*server_config.server.backup_days()).unwrap_or(7)
         };
@@ -95,7 +78,7 @@ impl FileService for FileServicePub {
                     continue;
                 }
             };
-            
+
             /* 백업 디렉토리 날짜별 폴더 경로 */
             let path: PathBuf = entry.path();
 
@@ -144,15 +127,14 @@ impl FileService for FileServicePub {
         &self,
         backup_target_file_path: PathBuf,
         backup_dir_path: &str,
-        modified_file_name: &str
+        modified_file_name: &str,
     ) -> Result<(), anyhow::Error> {
-        
         let file_name: &str = backup_target_file_path
             .file_name()
             .ok_or_else(|| anyhow!("Invalid file name from path"))?
             .to_str()
             .ok_or_else(|| anyhow!("Non-UTF8 file name"))?;
-        
+
         /* 백업 폴더관련 로직 */
         let cur_date: String = get_current_utc_naivedate_str("%Y%m%d")?;
         let timestamp: String = get_current_utc_naivedatetime_str("%Y_%m_%d_%H%M%S")?;
@@ -162,17 +144,16 @@ impl FileService for FileServicePub {
         let mut backup_file_path: PathBuf = PathBuf::from(backup_dir_path);
 
         self.backup_file_delete(&backup_file_path)?; /* 백업 파일 삭제 로직 -> 주기적으로 삭제해주는 함수 */
-        
+
         backup_file_path.push(cur_date);
         backup_file_path = create_dir_and_file(backup_file_path, &new_file_name)?;
 
         /* 동기화 대상 파일을 백업 디렉토리에 복사한다. */
         fs::copy(&backup_target_file_path, backup_file_path.as_path())?;
-        
+
         info!("Backup of file '{}' completed.", &file_name);
         Ok(())
     }
-
 
     #[doc = "파일 이벤트를 처리해주는 함수"]
     /// # Arguments

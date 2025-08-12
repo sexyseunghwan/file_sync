@@ -2,45 +2,15 @@ use crate::common::*;
 
 use crate::configs::Configs::*;
 
-use crate::repository::request_repository::*;
+use crate::traits::service::request_service::*;
 
-use crate::model::elastic_msg::*;
-
-#[async_trait]
-pub trait RequestService {
-    async fn send_info_to_slave(&self, file_path: &str, file_name: &str) -> Result<(), anyhow::Error>;
-    async fn send_info_to_slave_io(
-        &self,
-        file_path: &str,
-        file_name: &str,
-        slave_url: Vec<String>,
-    ) -> Result<(), anyhow::Error>;
-    async fn send_info_to_slave_memory(
-        &self,
-        file_path: &str,
-        file_name: &str,
-        slave_url: Vec<String>,
-    ) -> Result<(), anyhow::Error>;
-    fn handle_async_function(
-        &self,
-        task_res: Vec<Result<Result<(), anyhow::Error>, task::JoinError>>,
-    ) -> Result<(), anyhow::Error>;
-
-    async fn post_log_to_es(
-        &self,
-        from_host: &str,
-        to_host: &str,
-        file_path: &str,
-        task_status: &str,
-        task_detail: &str,
-    ) -> Result<(), anyhow::Error>;
-}
+use crate::external_clients::file_transfer_client::*;
 
 #[derive(Debug, new)]
-pub struct RequestServicePub;
+pub struct RequestServiceImpl;
 
 #[async_trait]
-impl RequestService for RequestServicePub {
+impl RequestService for RequestServiceImpl {
     #[doc = "master server 에서 파일이 변경되는 경우 해당 변경 정보를 slave server에 공유해준다."]
     /// # Arguments
     /// * `file_path` - 수정된 파일경로
@@ -48,7 +18,11 @@ impl RequestService for RequestServicePub {
     ///
     /// # Returns
     /// * Result<(), anyhow::Error>
-    async fn send_info_to_slave(&self, file_path: &str, file_name: &str) -> Result<(), anyhow::Error> {
+    async fn send_info_to_slave(
+        &self,
+        file_path: &str,
+        file_name: &str,
+    ) -> Result<(), anyhow::Error> {
         let slave_url: Vec<String>;
         let io_improvement_option: bool; /* io 효율코드 옵션 적용 유무 */
         {
@@ -61,7 +35,7 @@ impl RequestService for RequestServicePub {
 
             io_improvement_option = *server_config.server.io_bound_improvement();
         }
-        
+
         if io_improvement_option {
             self.send_info_to_slave_io(file_path, file_name, slave_url.clone())
                 .await?;
@@ -97,6 +71,7 @@ impl RequestService for RequestServicePub {
         }
 
         /* Slave Server 는 지금 Actix-web 으로 작동되고 있으므로 api 형식을 사용할때처럼 데이터를 송신해주는 것. */
+        /* 굳이 이렇게 병렬로 처리해야할 이유가 있나? */
         let tasks: Vec<_> = slave_url
             .into_iter()
             .map(|url: String| {
@@ -107,7 +82,7 @@ impl RequestService for RequestServicePub {
 
                 task::spawn(async move {
                     let from_host_move_clone: String = from_host_clone.clone();
-                    let req_repo: Arc<ReqRepositoryPub> = get_request_client();
+                    let req_repo: Arc<FileTransferClient> = get_request_client();
                     req_repo
                         .send_file_to_url(
                             &parsing_url,
@@ -156,7 +131,7 @@ impl RequestService for RequestServicePub {
                 task::spawn(async move {
                     let file_data: Vec<u8> = tokio::fs::read(&file_path).await?;
                     let from_host_move_clone: String = from_host_clone.clone();
-                    let req_repo: Arc<ReqRepositoryPub> = get_request_client();
+                    let req_repo: Arc<FileTransferClient> = get_request_client();
                     req_repo
                         .send_file_to_url(
                             &parsing_url,
@@ -172,6 +147,7 @@ impl RequestService for RequestServicePub {
 
         let results: Vec<Result<Result<(), anyhow::Error>, task::JoinError>> =
             join_all(tasks).await;
+
         self.handle_async_function(results)
     }
 
@@ -185,7 +161,7 @@ impl RequestService for RequestServicePub {
         &self,
         task_res: Vec<Result<Result<(), anyhow::Error>, task::JoinError>>,
     ) -> Result<(), anyhow::Error> {
-        let mut all_good = true;
+        let mut all_good: bool = true;
 
         for result in task_res {
             match result {
@@ -212,31 +188,5 @@ impl RequestService for RequestServicePub {
                 "[Error][handle_async_function()] Some tasks failed"
             ))
         }
-    }
-
-    #[doc = "라우터 함수에서 진행된 작업에 대한 로그를 Elasticsearch 로 보내주기 위한 함수"]
-    /// # Arguments
-    /// * `from_host`   - 작업진행 서버 주소
-    /// * `to_host`     - 피작업 진행 서버 주소
-    /// * `file_path`   - 수정된 파일 절대경로
-    /// * `task_status` - 작업 성공/실패 여부
-    /// * `task_detail` - 작업 관련 디테일 메시지
-    ///
-    /// # Returns
-    /// * Result<(), anyhow::Error>
-    async fn post_log_to_es(
-        &self,
-        from_host: &str,
-        to_host: &str,
-        file_path: &str,
-        task_status: &str,
-        task_detail: &str,
-    ) -> Result<(), anyhow::Error> {
-        let es_msg = ElasticMsg::new(from_host, to_host, file_path, task_status, task_detail)?;
-
-        let req_repo = get_request_client();
-        req_repo.send_task_message_to_elastic(es_msg).await?;
-
-        Ok(())
     }
 }

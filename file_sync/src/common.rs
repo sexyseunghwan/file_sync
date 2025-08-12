@@ -52,11 +52,11 @@ pub use once_cell::sync::Lazy as once_lazy;
 
 pub use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 
-pub use elasticsearch::{
-    http::response::Response,
-    http::transport::{SingleNodeConnectionPool, TransportBuilder},
-    http::Url,
-    Elasticsearch, IndexParts,
-};
+// pub use elasticsearch::{
+//     http::response::Response,
+//     http::transport::{SingleNodeConnectionPool, TransportBuilder},
+//     http::Url,
+//     Elasticsearch, IndexParts,
+// };
 
 pub use rand::{prelude::SliceRandom, rngs::StdRng, SeedableRng};

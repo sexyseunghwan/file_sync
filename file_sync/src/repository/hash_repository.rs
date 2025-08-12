@@ -62,7 +62,6 @@ pub struct HashStorage {
 impl HashStorage {
     #[doc = "Hashmap file을 읽어서 로드해주는 함수"]
     pub fn load(hash_map_dir: &str) -> Result<Self, anyhow::Error> {
-    
         /* 디렉토리와 파일이 존재하는지 확인 */
         let dir_path: PathBuf = create_dir_and_file(hash_map_dir, "hash_value.json")?;
 

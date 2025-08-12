@@ -4,8 +4,10 @@ use crate::model::file_info::*;
 
 use crate::configs::Configs::*;
 
-use crate::service::file_service::*;
-use crate::service::request_service::*;
+use crate::service::file_service_impl::*;
+use crate::service::request_service_impl::*;
+
+use crate::traits::service::file_service::*;
 
 #[derive(Debug, new)]
 pub struct AppRouter;
@@ -37,14 +39,13 @@ impl AppRouter {
 async fn download_handler(
     req: web::Query<FileInfo>,
     mut payload: web::Payload,
-    file_service: web::Data<Arc<FileServicePub>>,
-    request_service: web::Data<Arc<RequestServicePub>>,
+    file_service: web::Data<Arc<FileServiceImpl>>
 ) -> Result<HttpResponse, Error> {
     info!("Receive a file modification signal from the master server");
 
     let slave_backup_path: String; /* 백업파일 경로 */
     let watch_path_string: String; /* 감시대상 파일 경로 */
-    let from_host: String; /* 호스트 정보 */
+    //let from_host: String; /* 호스트 정보 */
     {
         let server_config: RwLockReadGuard<'_, Configs> = match get_config_read() {
             Ok(server_config) => server_config,
@@ -62,7 +63,7 @@ async fn download_handler(
             .clone()
             .unwrap_or_default();
 
-        from_host = server_config.server.host().clone();
+        //from_host = server_config.server.host().clone();
     }
 
     /* 수정된 파일의 이름 */
@@ -73,14 +74,13 @@ async fn download_handler(
 
     /* 수정된 파일 실제 경로 */
     let modified_file_path: PathBuf = watch_path.join(&modified_file_name);
-
+    
     /*
         수정된 파일 실제 경로 문자열 변환
-        - ElasticMsg 생성을 위한 변수
     */
     let modified_file_path_clone: PathBuf = modified_file_path.clone();
 
-    let modified_file_path_str = match modified_file_path_clone.to_str() {
+    let modified_file_path_str: &str = match modified_file_path_clone.to_str() {
         Some(modified_file_path_str) => modified_file_path_str,
         None => {
             let err_msg: &str =
@@ -88,13 +88,16 @@ async fn download_handler(
             error!("{}", err_msg);
             return Err(actix_web::error::ErrorInternalServerError(err_msg));
         }
-    };
+    };  
 
     /* 수정파일이 기존 slave 에도 존재하는 파일일 경우에 백업시작 -> 기존에 존재하지 않는 경우에는 백업 불필요 */
     if modified_file_path.exists() {
-        
         /* 파일 백업 시작 */
-        match file_service.copy_file_for_backup(modified_file_path.clone(), &slave_backup_path, &modified_file_name) {
+        match file_service.copy_file_for_backup(
+            modified_file_path.clone(),
+            &slave_backup_path,
+            &modified_file_name,
+        ) {
             Ok(_) => (),
             Err(e) => {
                 error!("[Error][upload_handler()] File backup Failed : {:?}", e);
@@ -102,7 +105,6 @@ async fn download_handler(
             }
         }
     }
-
 
     /* 전송된 파일로 기존 파일 덮어쓰기 */
     let mut chg_file: File = match File::create(modified_file_path) {
@@ -121,26 +123,8 @@ async fn download_handler(
 
     info!(
         "The file '{:?}' has been changed.",
-        modified_file_path_clone
+        modified_file_path_str
     );
-
-    /* 아래의 코드는 해당 파일 복사 관련 로그를 Elasticsearch 에 로깅해주기 위한 코드. */
-    match request_service
-        .post_log_to_es(
-            &from_host,
-            "",
-            modified_file_path_str,
-            "success",
-            "[slave task] Overwrite files",
-        )
-        .await
-    {
-        Ok(_) => (),
-        Err(e) => {
-            error!("{:?}", e);
-            return Err(actix_web::error::ErrorInternalServerError(e));
-        }
-    }
 
     Ok(HttpResponse::Ok().body("File uploaded successfully"))
 }

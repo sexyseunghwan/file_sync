@@ -1,7 +1,6 @@
 use crate::common::*;
 
-use crate::service::file_service::*;
-use crate::service::request_service::*;
+use crate::traits::service::{file_service::*, request_service::*};
 
 use crate::middleware::middle_ware::*;
 
@@ -30,8 +29,8 @@ where
             file_service,
         }
     }
-
-    #[doc = "프로그램 role 이 slave 인경우의 작업"]
+    
+    #[doc = "프로그램 role 이 slave 인경우의 작업: Web Router를 실행시켜준다."]
     pub async fn run(&self) -> Result<(), anyhow::Error> {
         let slave_host: String;
         let master_address: Vec<String>;
@@ -48,7 +47,7 @@ where
                 .clone();
         }
 
-        let req_service: Arc<R> = self.req_service.clone();
+        //let req_service: Arc<R> = self.req_service.clone();
         let file_service: Arc<F> = self.file_service.clone();
 
         HttpServer::new(move || {
@@ -56,7 +55,7 @@ where
                 .wrap(CheckIp::new(master_address.clone()))
                 .configure(AppRouter::configure_routes)
                 .app_data(web::Data::new(file_service.clone()))
-                .app_data(web::Data::new(req_service.clone()))
+                //.app_data(web::Data::new(req_service.clone()))
         })
         .bind(slave_host)?
         .run()

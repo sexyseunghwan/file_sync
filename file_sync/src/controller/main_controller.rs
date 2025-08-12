@@ -1,7 +1,6 @@
 use crate::common::*;
 
-use crate::service::file_service::*;
-use crate::service::request_service::*;
+use crate::traits::service::{file_service::*, request_service::*};
 
 use crate::handler::master_handler::*;
 use crate::handler::slave_handler::*;
@@ -35,13 +34,11 @@ where
         /* System role */
         let role: String;
         {
-            let server_config: RwLockReadGuard<'_, Configs> = match get_config_read() {
-                Ok(server_config) => server_config,
-                Err(e) => {
+            let server_config: RwLockReadGuard<'static, Configs> = get_config_read()
+                .unwrap_or_else(|e| {
                     error!("[Error][task_main()] {:?}", e);
                     panic!("{:?}", e)
-                }
-            };
+                });
 
             role = server_config.server.role().to_string();
         }

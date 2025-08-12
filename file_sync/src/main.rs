@@ -5,7 +5,10 @@ Description : Elasticsearch 중앙 집중식 사전 관리 시스템.
 
 History     : 2024-11-20 Seunghwan Shin       # [v.1.0.0] first create.
               2025-01-15 Seunghwan Shin       # [v.2.0.0] Linux OS 와도 호환되게 코드 수정.
-              2025-03-00 Seunghwan Shin       # [v.3.0.0] 여러파일을 싱크할 수 있도록 코드 수정
+              2025-03-10 Seunghwan Shin       # [v.3.0.0] 여러파일을 싱크할 수 있도록 코드 수정
+              2025-08-00 Seunghwan Shin       # [v.4.0.0]
+                                                1) 소스코드 리팩토링
+                                                2) Elasticsearch connection 사용X -> 파일 로그에 남기기로 수정
 */
 mod common;
 use crate::common::*;
@@ -18,8 +21,8 @@ mod handler;
 mod model;
 
 mod service;
-use service::file_service::*;
-use service::request_service::*;
+use service::file_service_impl::*;
+use service::request_service_impl::*;
 
 mod repository;
 
@@ -32,26 +35,29 @@ use controller::main_controller::*;
 
 mod configs;
 
+mod traits;
+
+mod external_clients;
+
 #[tokio::main]
 async fn main() {
     /* 로깅 시작 */
-    
-    // set_global_logger();
-    // info!("File Sync Program Start");
+    set_global_logger();
+    info!("File Sync Program Start");
 
-    // /* 종속 서비스 호출 */
-    // let config_req_service: Arc<RequestServicePub> = Arc::new(RequestServicePub::new());
-    // let file_service: Arc<FileServicePub> = Arc::new(FileServicePub::new());
+    /* 종속 서비스 호출 */
+    let req_service: Arc<RequestServiceImpl> = Arc::new(RequestServiceImpl::new());
+    let file_service: Arc<FileServiceImpl> = Arc::new(FileServiceImpl::new());
 
-    // /* 메인 컨트롤러 호출 */
-    // let main_controller: MainController<RequestServicePub, FileServicePub> =
-    //     MainController::new(config_req_service, file_service);
+    /* 메인 컨트롤러 호출 */
+    let main_controller: MainController<RequestServiceImpl, FileServiceImpl> =
+        MainController::new(req_service, file_service);
 
-    // /* 메인함수 호출 */
-    // main_controller.task_main().await;
+    /* 메인함수 호출 */
+    main_controller.task_main().await;
 }
 
-/* 테스트 시나리오 */
+/* ======================== 테스트 시나리오 ======================== */
 // fn test_scenario() {
 
 //     /* ==== TEST 시나리오 ==== */
@@ -112,3 +118,4 @@ async fn main() {
 //     //     handle.join().unwrap();
 //     // }
 // }
+/* ======================== 테스트 시나리오 ======================== */
