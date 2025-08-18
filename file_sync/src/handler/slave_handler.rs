@@ -8,6 +8,8 @@ use crate::router::app_router::*;
 
 use crate::configs::configs::*;
 
+use crate::utils_modules::tls_utils::*;
+
 #[derive(Debug)]
 pub struct SlaveHandler<R, F>
 where
@@ -30,10 +32,11 @@ where
         }
     }
     
-    #[doc = "프로그램 role 이 slave 인경우의 작업: Web Router를 실행시켜준다."]
+    #[doc = "프로그램 role 이 slave 인경우의 작업: 보안 모드에 따라 HTTP 또는 mTLS HTTPS 서버를 실행한다."]
     pub async fn run(&self) -> Result<(), anyhow::Error> {
         let slave_host: String;
         let master_address: Vec<String>;
+        let secure_mode: bool;
         {
             let server_config: RwLockReadGuard<'_, Configs> = get_config_read()?;
             slave_host = server_config.server.host().to_string();
@@ -45,21 +48,41 @@ where
                     anyhow!("[Error][run()] The information 'master_address' does not exist.")
                 })?
                 .clone();
+            secure_mode = server_config.server.is_secure_mode();
         }
 
-        //let req_service: Arc<R> = self.req_service.clone();
         let file_service: Arc<F> = self.file_service.clone();
 
-        HttpServer::new(move || {
-            App::new()
-                .wrap(CheckIp::new(master_address.clone()))
-                .configure(AppRouter::configure_routes)
-                .app_data(web::Data::new(file_service.clone()))
-                //.app_data(web::Data::new(req_service.clone()))
-        })
-        .bind(slave_host)?
-        .run()
-        .await?;
+        /* TLS 를 적용한 경우 */
+        if secure_mode {
+            let tls_config: rustls::ServerConfig = create_server_tls_config()
+                .map_err(|e| anyhow!("[ERROR][SlaveHandler->run] Failed to create TLS config: {}", e))?;
+
+            info!("Starting secure slave server with mTLS on: {}", slave_host);
+
+            HttpServer::new(move || {
+                App::new()
+                    .wrap(CheckIp::new(master_address.clone()))
+                    .configure(AppRouter::configure_routes)
+                    .app_data(web::Data::new(file_service.clone()))
+            })
+            .bind_rustls_0_23(&slave_host, tls_config)?
+            .run()
+            .await?;
+        } else {
+            /* TLS 를 적용하지 않은 경우 */
+            info!("Starting regular HTTP slave server on: {}", slave_host);
+
+            HttpServer::new(move || {
+                App::new()
+                    .wrap(CheckIp::new(master_address.clone()))
+                    .configure(AppRouter::configure_routes)
+                    .app_data(web::Data::new(file_service.clone()))
+            })
+            .bind(slave_host)?
+            .run()
+            .await?;
+        }
 
         Ok(())
     }

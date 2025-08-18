@@ -5,6 +5,7 @@ use crate::configs::configs::*;
 use crate::traits::service::request_service::*;
 
 use crate::external_clients::file_transfer_client::*;
+use crate::external_clients::secure_file_transfer_client::*;
 
 #[derive(Debug, new)]
 pub struct RequestServiceImpl;
@@ -25,6 +26,7 @@ impl RequestService for RequestServiceImpl {
     ) -> Result<(), anyhow::Error> {
         let slave_url: Vec<String>;
         let io_improvement_option: bool; /* io 효율코드 옵션 적용 유무 */
+        let secure_mode: bool; /* 보안모드 적용 유무 */
         {
             let server_config: RwLockReadGuard<'_, Configs> = get_config_read()?;
             slave_url = server_config
@@ -34,25 +36,27 @@ impl RequestService for RequestServiceImpl {
                 .ok_or_else(|| anyhow!("[Error][send_info_to_slave()] 'slave_url' not found."))?;
 
             io_improvement_option = *server_config.server.io_bound_improvement();
+            secure_mode = server_config.server.is_secure_mode();
         }
 
         if io_improvement_option {
-            self.send_info_to_slave_io(file_path, file_name, slave_url.clone())
+            self.send_info_to_slave_io(file_path, file_name, slave_url.clone(), secure_mode)
                 .await?;
         } else {
             /* io 효율코드 옵션을 적용하지 않으면 메모리 효율코드 옵션이 지정된다. */
-            self.send_info_to_slave_memory(file_path, file_name, slave_url.clone())
+            self.send_info_to_slave_memory(file_path, file_name, slave_url.clone(), secure_mode)
                 .await?;
         }
 
         Ok(())
     }
-
+    
     #[doc = "i/o bound 효율코드"]
     /// # Arguments
     /// * `file_path` - 수정된 파일 경로
     /// * `file_name` - 수정된 파일 이름
     /// * `slave_url` - 동기화 대상이 되는 서버들
+    /// * `secure_mode` - TLS 사용 여부
     ///
     /// # Returns
     /// * Result<(), anyhow::Error>
@@ -61,6 +65,7 @@ impl RequestService for RequestServiceImpl {
         file_path: &str,
         file_name: &str,
         slave_url: Vec<String>,
+        secure_mode: bool,
     ) -> Result<(), anyhow::Error> {
         /* 변경된 파일의 데이터를 read 하여 메모리에 상주시킨다. */
         let file_data: Vec<u8> = tokio::fs::read(&file_path).await?;
@@ -69,29 +74,43 @@ impl RequestService for RequestServiceImpl {
             let server_config: RwLockReadGuard<'_, Configs> = get_config_read()?;
             from_host = server_config.server.host().to_string();
         }
-
+        
         /* Slave Server 는 지금 Actix-web 으로 작동되고 있으므로 api 형식을 사용할때처럼 데이터를 송신해주는 것. */
-        /* 굳이 이렇게 병렬로 처리해야할 이유가 있나? */
         let tasks: Vec<_> = slave_url
             .into_iter()
             .map(|url: String| {
-                let data_clone: Vec<u8> = file_data.clone(); /* 변경된 파일 데이터 복제: 소유권으로 인한 문제*/
-                let parsing_url: String = format!("http://{}/upload?filename={}", url, file_name);
+                let data_clone: Vec<u8> = file_data.clone(); /* 변경된 파일 데이터 복제: 소유권으로 인한 문제 */
+                let protocol: &str = if secure_mode { "https" } else { "http" };
+                let parsing_url: String = format!("{}://{}/upload?filename={}", protocol, url, file_name);
                 let file_path: String = file_path.to_string().clone();
                 let from_host_clone: String = from_host.clone();
 
                 task::spawn(async move {
                     let from_host_move_clone: String = from_host_clone.clone();
-                    let req_repo: Arc<FileTransferClient> = get_request_client();
-                    req_repo
-                        .send_file_to_url(
-                            &parsing_url,
-                            &data_clone,
-                            &file_path,
-                            &from_host_move_clone,
-                            &url,
-                        )
-                        .await
+                    
+                    if secure_mode {
+                        let req_repo: Arc<SecureFileTransferClient> = get_secure_request_client();
+                        req_repo
+                            .send_file_to_url(
+                                &parsing_url,
+                                &data_clone,
+                                &file_path,
+                                &from_host_move_clone,
+                                &url,
+                            )
+                            .await
+                    } else {
+                        let req_repo: Arc<FileTransferClient> = get_request_client();
+                        req_repo
+                            .send_file_to_url(
+                                &parsing_url,
+                                &data_clone,
+                                &file_path,
+                                &from_host_move_clone,
+                                &url,
+                            )
+                            .await
+                    }
                 })
             })
             .collect();
@@ -100,12 +119,13 @@ impl RequestService for RequestServiceImpl {
             join_all(tasks).await;
         self.handle_async_function(results)
     }
-
+    
     #[doc = "메모리 효율 코드"]
     /// # Arguments
     /// * `file_path` - 수정된 파일 경로
     /// * `file_name` - 수정된 파일 이름
     /// * `slave_url` - 동기화 대상이 되는 서버들
+    /// * `secure_mode` - TLS 사용 여부
     ///
     /// # Returns
     /// * Result<(), anyhow::Error>
@@ -114,6 +134,7 @@ impl RequestService for RequestServiceImpl {
         file_path: &str,
         file_name: &str,
         slave_url: Vec<String>,
+        secure_mode: bool,
     ) -> Result<(), anyhow::Error> {
         let from_host: String;
         {
@@ -124,23 +145,38 @@ impl RequestService for RequestServiceImpl {
         let tasks: Vec<_> = slave_url
             .into_iter()
             .map(|url| {
-                let parsing_url: String = format!("http://{}/upload?filename={}", url, file_name);
+                let protocol: &str = if secure_mode { "https" } else { "http" };
+                let parsing_url: String = format!("{}://{}/upload?filename={}", protocol, url, file_name);
                 let file_path: String = file_path.to_string().clone();
                 let from_host_clone: String = from_host.clone();
 
                 task::spawn(async move {
                     let file_data: Vec<u8> = tokio::fs::read(&file_path).await?;
                     let from_host_move_clone: String = from_host_clone.clone();
-                    let req_repo: Arc<FileTransferClient> = get_request_client();
-                    req_repo
-                        .send_file_to_url(
-                            &parsing_url,
-                            &file_data,
-                            &file_path,
-                            &from_host_move_clone,
-                            &url,
-                        )
-                        .await
+                    
+                    if secure_mode {
+                        let req_repo: Arc<SecureFileTransferClient> = get_secure_request_client();
+                        req_repo
+                            .send_file_to_url(
+                                &parsing_url,
+                                &file_data,
+                                &file_path,
+                                &from_host_move_clone,
+                                &url,
+                            )
+                            .await
+                    } else {
+                        let req_repo: Arc<FileTransferClient> = get_request_client();
+                        req_repo
+                            .send_file_to_url(
+                                &parsing_url,
+                                &file_data,
+                                &file_path,
+                                &from_host_move_clone,
+                                &url,
+                            )
+                            .await
+                    }
                 })
             })
             .collect();

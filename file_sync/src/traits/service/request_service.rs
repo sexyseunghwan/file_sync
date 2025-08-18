@@ -12,12 +12,14 @@ pub trait RequestService {
         file_path: &str,
         file_name: &str,
         slave_url: Vec<String>,
+        secure_mode: bool,
     ) -> Result<(), anyhow::Error>;
     async fn send_info_to_slave_memory(
         &self,
         file_path: &str,
         file_name: &str,
         slave_url: Vec<String>,
+        secure_mode: bool,
     ) -> Result<(), anyhow::Error>;
     fn handle_async_function(
         &self,

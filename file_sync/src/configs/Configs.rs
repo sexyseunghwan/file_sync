@@ -6,12 +6,15 @@ use crate::utils_modules::io_utils::*;
 
 use crate::model::monitoring_path_info::*;
 
+use crate::env_config::env_config::*;
+
 #[doc = "프로그램 기본 Config 정보를 싱글톤으로 관리하기 위한 전역 변수"]
 static CONFIG_INFOS: once_lazy<Arc<RwLock<Configs>>> = once_lazy::new(initialize_server_configs);
 
 #[doc = "Config 정보를 초기화해주는 함수"]
 pub fn initialize_server_configs() -> Arc<RwLock<Configs>> {
-    let config: Configs = match read_toml_from_file::<Configs>("./config/config.toml") {
+    
+    let config: Configs = match read_toml_from_file::<Configs>(&CONFIG_FILE_PATH) {
         Ok(config) => config,
         Err(e) => {
             error!(
